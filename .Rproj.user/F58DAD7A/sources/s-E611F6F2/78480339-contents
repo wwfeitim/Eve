@@ -1,0 +1,155 @@
+---
+title: "KPMG_data_assessment"
+author: "Wenwei Fei"
+date: "17/08/2021"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages and data import}
+library(data.table)
+library(ggplot2)
+library(ggmosaic)
+library(readr)
+library(dplyr)
+```
+
+```{r packages and data import}
+filepath <- "D:/My Storage/Career_R_ABS/Companies/KPMG/Task_1/"
+df_transaction <- readxl::read_xlsx(paste0(filepath,"transaction.xlsx"))
+df_newcustomerlist <- readxl::read_xlsx(paste0(filepath,"NewCustomerList.xlsx"))
+df_cusdemo <- readxl::read_xlsx(paste0(filepath,"CustomerDemographic.xlsx"))
+df_cusadd <- readxl::read_xlsx(paste0(filepath,"CustomerAddress.xlsx"))
+```
+
+```{r transaction}
+# quick look
+str(df_transaction)
+# convert date
+df_transaction$transaction_date <- as.Date(df_transaction$transaction_date)
+# check data validation
+dt_transaction <- data.table(df_transaction)
+dt_transaction$product_first_sold_date <- as.Date(dt_transaction$product_first_sold_date, origin = "1899-12-30")
+dt_transaction[, .N, transaction_date][order(transaction_date)]
+# check NA
+is.na(dt_transaction) %>% summary
+dt_transaction[is.na(dt_transaction$brand),]
+197/20000
+## there are 197 id that have missing values. 1% weight among tranction datasheet.
+# quick check again
+str(dt_transaction)
+dt_transaction[, .N, transaction_id]
+## There is no duplicated Tranaction ID. 
+```
+
+```{r new customer list}
+str(df_newcustomerlist)
+## date inputs different formats
+# convert date
+dt_newcuslist <- data.table(df_newcustomerlist)
+str(dt_newcuslist)
+num_date <- as.Date(as.numeric(dt_newcuslist$DOB), origin = "1899-12-30")
+summary(!is.na(num_date))
+54/100
+## approx 5.4% of date input are missing or wrong formats
+
+num_date2 <- as.Date(dt_newcuslist$DOB, origin ="1899-12-30")
+num_date2[is.na(num_date2)] <- num_date[is.na(num_date2)]
+dt_newcuslist$DOB <- num_date2
+summary(!is.na(dt_newcuslist$DOB))
+17/1000
+## approx 1.7% date missing and 3.7% date with wrong formats
+# all missing values
+summary(is.na(dt_newcuslist))
+29/1000 # Last name missing 2.9%
+106/1000 # job_title_missing 10.6%
+# 
+dt_newcuslist[,c(1,2)] %>% unique()
+dt_newcuslist$gender %>% unique()
+dt_newcuslist$past_3_years_bike_related_purchases <- as.numeric(dt_newcuslist$past_3_years_bike_related_purchases)
+dt_newcuslist$tenure %>% unique()
+## No duplication
+
+```
+
+```{r cus demo}
+dt_cusdemo <- data.table(df_cusdemo)
+str(dt_cusdemo)
+# date inputs different formats
+date1 <- dt_cusdemo$DOB %>% as.numeric(.) %>% as.Date(., origin = "1899-12-30")
+date2 <- dt_cusdemo$DOB[is.na(date1)] %>% as.Date()
+date1[is.na(date1)] <- date2
+dt_cusdemo$DOB <- date1
+87/4000 # one date with wrong format and 2.2% date are missing
+# missing values
+summary(is.na(dt_cusdemo))
+125/4000
+506/4000
+87/4000
+## 3.1% last_name missing, 12.7% job title missing, 2.2% tenure missing
+## default has many funny codes. The issue might be caused by different coding formates, need to investigate.
+dt_cusdemo[,.N,job_industry_category]
+656/4000
+## 16.4% missing values in job_industry_category
+# duplication
+str(dt_cusdemo)
+names <- data.frame(full_name = paste(dt_cusdemo$first_name,dt_cusdemo$last_name)) %>% data.table()
+names[, .N, full_name][order(-N)]
+## Because of missing last name, there are 2 duplicates in individuals: Corabelle NA and Lorettalorna NA
+dt_cusdemo$customer_id %>% unique()
+```
+
+```{r customer address}
+## 3999 addresses with 4000 customers mismatch
+dt_cusad <- data.table(df_cusadd)
+str(dt_cusad)
+
+# customer_id
+dt_cusad[,.N,customer_id][order(-N)]
+id_sq <- seq(1,4003,1)
+dt_cusad$customer_id
+setdiff(id_sq,dt_cusad$customer_id)
+## missing ID are 3,10,22,23
+# address inspect
+library(stringr)
+address <- dt_cusad$address
+unit_numb <- word(address,1,1)
+unit_numb %>% as.numeric() %>% is.na(.) %>% summary() #no missing unit number
+str_extract(unit_numb, "\\d") %>% data.table(number = .) %>% .[,.N,number]
+399/3999
+## there are 10% address have the first digit 0.
+# dupilication
+dt_cusad$postcode %>% nchar() %>% unique()
+dt_cusad[,.N,state]
+## duplicates in state, (VIC 939,victoria 82) and (NSW 2054,New south wales 86)
+dt_cusad[,.N,country]
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

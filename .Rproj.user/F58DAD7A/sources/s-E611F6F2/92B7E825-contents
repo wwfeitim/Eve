@@ -1,0 +1,435 @@
+---
+title: "RSelenium Tutorial"
+author: "Wenwei Fei"
+date: "16/05/2021"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+reference: https://thatdatatho.com/tutorial-web-scraping-rselenium/.
+reference: https://github.com/yusuzech/r-web-scraping-cheat-sheet/blob/master/README.md
+
+
+```{r}
+# sever start and stop
+## packages
+library(RSelenium)
+library(tidyverse)
+```
+
+
+```{r server pack}
+# Check the available chrome version, the default is latest
+verlist <- binman::list_versions("chromedriver") %>% flatten_chr()
+# check my chrome version. wmic: WMI command-line 
+version <- system2(command = "wmic",args = 'datafile where name="C:\\\\Program Files (x86)\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe" get Version /value',stdout = TRUE,stderr = TRUE)
+version <- str_sub(version[3],start = 9,end = -2)
+# select the latest version earlier the current chrome version 
+ver <- max(verlist[version > verlist])
+# driver setting
+driver <- rsDriver(browser = "chrome", chromever = ver)
+driver$client$close()
+redr <- driver[["client"]]
+redr$open()
+```
+
+```{r}
+redr$open()
+redr$refresh()
+redr$close()
+```
+
+```{r}
+# to cleanup the port, by kill the java instance(s) inside Rstudio
+# refer: https://github.com/ropensci/RSelenium/issues/228
+system("taskkill /im java.exe /f", intern=FALSE, ignore.stdout=FALSE)
+# check if ports still open
+pingr::ping_port("localhost", 4567)
+```
+
+```{r example 1}
+################
+### Original ###
+################
+library(RSelenium)
+library(tidyverse)
+
+# Check the available chrome version, the default is latest
+binman::list_versions("chromedriver")
+# Open selenium port
+driver <- rsDriver(browser=c("chrome"),
+                   chromever = "91.0.4472.101")
+remote_driver <- driver[["client"]]
+# Open the remote driver
+remote_driver$open()
+# Close the driver 
+remote_driver$close()
+driver[["server"]]$stop()
+
+# to cleanup the port, by kill the java instance(s) inside Rstudio
+# refer: https://github.com/ropensci/RSelenium/issues/228
+system("taskkill /im java.exe /f", intern=FALSE, ignore.stdout=FALSE)
+pingr::ping_port("localhost", 4567)
+
+# navigate
+remote_driver$navigate("https://www.google.com/")
+remote_driver$refresh
+ 
+remote_driver$navigate("https://www.latlong.net/convert-address-to-lat-long.html")
+remote_driver$refresh
+
+#########################
+### UPDATE 09/11/2019 ###
+#########################
+
+driver <- rsDriver(browser = c("chrome"), chromever = "78.0.3904.70")
+remote_driver <- driver[["client"]] 
+remote_driver$navigate("https://www.latlong.net/convert-address-to-lat-long.html")
+
+#########################
+### UPDATE 16/02/2020 ### This does not always work, easiest way is to manually check the version by binman::list_version("chromedriver")
+#########################
+
+driver <- RSelenium::rsDriver(browser = "chrome",
+                              chromever =
+                                system2(command = "wmic",
+                                        args = 'datafile where name="C:\\\\Program Files (x86)\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe" get Version /value',
+                                        stdout = TRUE,
+                                        stderr = TRUE) %>%
+                                stringr::str_extract(pattern = "(?<=Version=)\\d+\\.\\d+\\.\\d+\\.") %>%
+                                magrittr::extract(!is.na(.)) %>%
+                                stringr::str_replace_all(pattern = "\\.",
+                                                         replacement = "\\\\.") %>%
+                                paste0("^",  .) %>%
+                                stringr::str_subset(string =
+                                                      binman::list_versions(appname = "chromedriver") %>%
+                                                      dplyr::last()) %>%
+                                as.numeric_version() %>%
+                                max() %>%
+                                as.character())
+
+remote_driver <- driver[["client"]] 
+remote_driver$navigate("https://www.latlong.net/convert-address-to-lat-long.html")
+
+
+
+```
+
+Example 1 latitude, longitude example
+================================================================================
+```{r example 1}
+# Move the mouse to the box and inspect the HTML code, it finds the class = "width70"
+address_element <- remote_driver$findElement(using = 'class', value = 'width70')
+# Sometime xpath could be a trouble less solution
+address_element <- remote_driver$findElement(using = 'xpath', value = '//*[@id="FS3811"]')
+```
+
+```{r example 1}
+# Now, we have to let RSelenium type in the address we want to get coordinates for.
+address_element$sendKeysToElement(list("Lombard Street, San Francisco"))
+```
+
+```{r example 1}
+# Now we have to press the Find button in order to get the coordinates.
+button_element <- remote_driver$findElement(using = 'class', value = "button")
+button_element <- remote_driver$findElement(using = 'xpath', value = '//*[@id="btnfind"]')
+# After we have located the button, we have to click it.
+button_element$clickElement()
+
+# Under the XPath @class = “coordinatetxt”.
+out <- remote_driver$findElement(using = "class", value="coordinatetxt")
+result1 <- remote_driver$findElement(using = 'xpath',value = '//*[@id="latlngspan"]')
+
+latlong <- result1$getElementText()
+lat_long <- out$getElementText()
+```
+
+```{r example 1}
+# When we have a lot of addresses we want to get coordinates for, then this could be accomplished like that:
+street_names <- c("Lombard Street, San Francisco", 
+                  "Santa Monica Boulevard", 
+                  "Bourbon Street, New Orleans", 
+                  "Fifth Avenue, New York", 
+                  "Richards Street, Vancouver")
+
+get_lat_lon <- function(street_names) {
+  remote_driver$navigate("https://www.latlong.net/convert-address-to-lat-long.html")
+  final <- c()
+  for(i in 1:length(street_names)) {
+    
+    remote_driver$refresh()
+    Sys.sleep(1) # Suspend R Execution for a second give the web time to run
+    
+    address_element <- remote_driver$findElement(using = 'class', value = 'width70')
+    
+    address_element$sendKeysToElement(list(street_names[i]))
+    button_element <- remote_driver$findElement(using = 'class', value = "button")
+    
+    button_element$clickElement()
+    Sys.sleep(3)
+    
+    out <- remote_driver$findElement(using = "class", value = "coordinatetxt")
+    output <- out$getElementText()
+    final <- c(final, output)
+    
+  }
+  
+  return(final)
+}
+
+
+vector_out <- get_lat_lon(street_names)
+
+```
+
+```{r example 1}
+# After, we can extract the latitude and longitude values with the code below
+result1 <- data.frame(street_names, purrr::flatten_chr(vector_out)) %>%
+  dplyr::mutate(., vector_out = stringr::str_remove_all(vector_out, "\\(|\\)")) %>%
+  tidyr::separate(., vector_out, into = c("latitude", "longitude"), sep = ",")
+
+# steps
+#1
+class(vector_out) # which is a list
+purrr::flatten_chr(vector_out) # flatten list inti vector
+
+#2 
+data.frame(street_names, purrr::flatten_chr(vector_out))
+
+#3 check ?str_remove_all
+stringr::str_remove_all(vector_out, "\\(|\\)")
+
+#4
+ tidyr::separate(., vector_out, into = c("latitude", "longitude"), sep = ",")
+
+```
+
+Example 2 post code 
+================================================================================
+
+```{r}
+url <- "https://www.canadapost.ca/cpo/mc/personal/postalcode/fpc.jsf"
+remote_driver$navigate(url)
+remote_driver$refresh()
+```
+
+```{r}
+address_element <- remote_driver$findElement(using = 'xpath', value = '//*[@id="addressComplete"]')
+address_element$sendKeysToElement(list("413 Seymour Street Vancouver"))
+```
+
+```{r}
+button_element <- remote_driver$findElement(using = 'xpath', value = '//*[@id="searchFpc"]')
+button_element$clickElement()
+```
+
+```{r}
+output <- remote_driver$findElement(using = 'xpath', value = '//*[@id="HeaderAddressLabel"]')
+output$getElementText()
+outp_sample <- output$getElementText()
+outp_sample[[1]]
+str_sub(outp_sample[[1]], start = -7, end = -1)
+```
+
+```{r}
+# ?unlist
+unlist(output) %>% 
+  stringr::str_sub(start = -7, end = -1)
+
+# or it can asily done by 
+str_sub(outp_sample[[1]], start = -7, end = -1)
+```
+
+
+Example 3 real estate
+================================================================================
+
+```{r}
+library(rvest)
+```
+
+```{r}
+# url
+url <- "https://sothebysrealty.ca/en/search-results/region-greater-vancouver-british-columbia-real-estate/tloc-1/rloc-3/ptype-condo/price-0-1000000/view-grid/show-mls/sort-featured/pp-60/status-sales"
+```
+
+```{r}
+redr$navigate(url)
+# identifying the URL and page structure
+urls <- sapply(2:51, function(x){
+  url <- "https://sothebysrealty.ca/en/search-results/region-greater-vancouver-british-columbia-real-estate/price-0-1000000/status-1/view-grid/show-mls/sort-1/pp-60/page-"
+  urls <- paste0(url,x)
+})
+```
+
+
+```{r loop test}
+redr$navigate(urls[[1]])
+# this only obtain one href
+link <- redr$findElements(using = "class", value = "plink")
+link$getElementAttribute("href")
+# this obtain all href(s)
+links <- redr$findElements(using = "xpath", value = "//*[@class = 'plink']")
+# extract all href
+df <- sapply(links,function(x){x$getElementAttribute("href")})
+df <- data.frame(link = unlist(df))
+```
+
+```{r obtain all href}
+# href attribute creates a hyperlink to web pages.
+df_all <- data.frame()
+for(i in 1:3){
+  redr$navigate(paste0(urls[[i]]))
+  # The sleep time can be quite different
+  Sys.sleep(3)
+  # here we use the Element(s) rather than element
+  links <- redr$findElements(using = "xpath", value = "//*[@class = 'plink']")
+  df <- sapply(links,function(x){x$getElementAttribute("href")})
+  df <- data.frame(link = unlist(df))
+  Sys.sleep(1)
+  df_all = rbind(df_all, df)
+}
+```
+
+```{r}
+# navigate to the first property
+redr$navigate(df_all[1,])
+# get house price 
+page <- read_html(df_all[1,])
+house_price <- page %>% 
+  html_nodes("ul") %>% 
+  html_nodes(xpath = "//*[@class='price_social']") %>% 
+  html_text() %>% .[[1]]
+# get address
+street_address <- page %>% 
+  html_nodes("span") %>% 
+  html_nodes(xpath = '//*[@class="span8"]') %>% 
+  html_nodes("h1") %>%
+  html_text() %>% .[[1]]
+## or use the chrome tool selctorgadget to find the header (h1) driectly
+street_address <- page %>% 
+  html_nodes("h1") %>% 
+  html_text() %>% .[[1]]
+# getting beds baths square feet
+key_factors <- page %>% 
+  html_nodes("ul") %>% 
+  html_nodes(xpath = "//*[@class='key_facts']") %>% 
+  html_nodes("li") %>% 
+  html_text()
+
+str_replace_all(key_factors, ".*:","") 
+
+# ?str_replace_all()
+key_factors %>% 
+  # (.*) used to delete contents, (.*): -> delete contents before the : 
+  # :(.*) delete the contents after :
+  str_replace_all(., ".*:","") %>% 
+  set_names(., nm = str_replace_all(key_factors, ":.*","") %>% 
+              # replace all positive numbers from 0 to 9
+              str_replace_all(.,"[0-9]+","") %>% 
+              stringi::stri_trim_both(.))->key_factors
+
+names(key_factors)
+```
+
+```{r put all part together}
+# converting links stored in a data.frame() as factors to character type stored in a vector df
+linkss <- sapply(df_all$link, as.character)
+# initalize empty data frame where we will be storing our scraped data 
+df_all_factors <- data.frame()
+df_all_data <- data.frame()
+
+scraper <- function(linkss){
+  # save link in url object, linkss is the input of the function
+  url <- linkss
+  # parse page url
+  page <- xml2::read_html(url)
+  Sys.sleep(0.5)
+  #house price 
+  house_price <- page %>% 
+  html_nodes("ul") %>% 
+  html_nodes(xpath = "//*[@class='price_social']") %>% 
+  html_text() %>% .[[1]]
+  # street address
+  street_address <- page %>% 
+  html_nodes("h1") %>% 
+  html_text() %>% .[[1]]
+  # key factors
+  key_factors <- page %>% 
+  html_nodes("ul") %>% 
+  html_nodes(xpath = "//*[@class='key_facts']") %>% 
+  html_nodes("li") %>% 
+  html_text()
+   # removing unnecessary content from the vector of strings and naming the vector elements
+  key_factors %>% 
+    str_replace_all(.,".#*:","") %>% 
+    # set_names: give a vector of values a vector of names (the same length)
+    set_names(., nm = str_replace_all(key_factors, ":.*","") %>% 
+              str_replace_all(.,"[0-9]+","") %>% 
+              stringi::stri_trim_both(.))-> key_factors
+  
+  # the following code assigns the scraped data for each condo where applicable
+  # if the information is not available, we are filling the observation with a NA value
+  # for example, there are condos where taxes are not available
+  # moreover, some condos are going to get build in the future, so age was not available
+  
+  building_type <- ifelse("Property Type" %in% names(key_factors),
+                          key_factors[ grep("Property Type", names(key_factors), ignore.case 
+                                            = TRUE, value = TRUE) ],
+                          NA)
+   # get square feet
+  square_feet <- ifelse("Living Space" %in% names(key_factors),
+                        key_factors[ grep("Living Space", names(key_factors), ignore.case = TRUE,                                         value = TRUE) ],
+                        NA)
+  # get the number of bedrooms
+  bedrooms <- ifelse("Bedrooms" %in% names(key_factors),
+                     key_factors[ grep("Bedrooms", names(key_factors), ignore.case = TRUE, value = TRUE) ],
+                     NA)
+  
+  # get the number of bathrooms
+  bathrooms <- ifelse("Bathrooms" %in% names(key_factors),
+                      key_factors[ grep("Bathrooms", names(key_factors), ignore.case = TRUE, value = TRUE) ],
+                      NA)
+  
+   # get when the condo was built
+  year_built <- ifelse("Year Built" %in% names(key_factors),
+                       key_factors[ grep("Year Built", names(key_factors), ignore.case = TRUE, value = TRUE) ],
+                       NA)
+  
+  # get the age of the condo
+  age <- ifelse("Approximate Age" %in% names(key_factors),
+                key_factors[ grep("Age", names(key_factors), ignore.case = TRUE, value = TRUE) ],
+                NA)
+  # get the taxes (property taxes)
+  taxes <- ifelse("Other Taxes" %in% names(key_factors) | "Municipal Taxes" %in% names(key_factors),  
+                  key_factors[ grep("taxes", names(key_factors), ignore.case = TRUE, value = TRUE) ], 
+                  NA)
+  
+  # storing individual links in df_individual_page object
+  df_individual_page <- data.frame(price = house_price,
+                                   address = street_address,
+                                   squares = square_feet,
+                                   type = building_type,
+                                   year = year_built,
+                                   age = age,
+                                   bed = bedrooms,
+                                   bath = bathrooms,
+                                   tax = taxes)
+  
+  # rbinding df_all_data and df_individual_page
+  # <<- makes df_all_data a global variable. Making it available in the global environment
+  df_all_data <<- rbind(df_all_data, df_individual_page)
+}
+
+# looping over all links in the vector and applying scraper function to each link
+sapply(linkss, scraper)
+```
+
+
+
+
+
+
+
+

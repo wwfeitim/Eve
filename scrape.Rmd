@@ -305,7 +305,7 @@ scraper <- function(address){
 ## unable to perform via function I built, so I tried for loop. The reason may because of the redr$getPageSource() which is not capable to run in funciton.
 
 # first #### pages
-for (i in 4000:4500) {
+for (i in 4500:5000) {
   url_inloop <- links[i]
   redr$navigate(url_inloop)
   Sys.sleep(1.1)

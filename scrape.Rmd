@@ -305,7 +305,7 @@ scraper <- function(address){
 ## unable to perform via function I built, so I tried for loop. The reason may because of the redr$getPageSource() which is not capable to run in funciton.
 
 # first #### pages
-for (i in 4500:5000) {
+for (i in 6149:6417) {
   url_inloop <- links[i]
   redr$navigate(url_inloop)
   Sys.sleep(1.1)
@@ -343,13 +343,13 @@ for (i in 4500:5000) {
 
 
 ```{r apply method to all links}
-df_all_fixed <- df_all[1:47998,]
+df_all_fixed <- df_all[1:76819,]
 df_all_fixed[, state_2 := state]
 df_all <- df_all_fixed
 
-df_all <- df_all[1:20350,]
+df_all <- df_all[1:59984,]
 
-fwrite(df_all_fixed, "D:/Projects/EVE/Eve/data_collect_raw_08_29_2021.csv")
+fwrite(df_all_fixed, "D:/Projects/EVE/Eve/data_collect_raw_08_30_2021.csv")
 fwrite(df_urls, "D:/Projects/EVE/Eve/urls.csv")
 df_all <- fread("D:/Projects/EVE/Eve/data_collect_raw_08_29_2021.csv")
 ```

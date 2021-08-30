@@ -88,6 +88,7 @@ df_newcars[,.N,price_adj][order(N)]
 df_newcars[,.N,body_adj]
 df_newcars[,.N,trans_ad]
 df_newcars[,.N,engine_ad]
+df_newcars[,.N,seller_ad]
 ###########################################################
 # used car check
 df_usedcars[,.N,state_only]
@@ -143,8 +144,14 @@ df_test <- df_test[body_adj != "147,014 km" & body_adj !="194,132 km"]
 df_test[,.N,trans_ad]
 df_test <- df_test[trans_ad != "People Mover" & trans_ad != "SUV"]
 df_test[,.N,engine_ad]
+# seller fix
 unique(df_test$engine_ad)
-
+str(df_test)
+seller_adjust <- unique(df_test$seller_ad)
+seller_adjust %>% gsub("\\n|[[:digit:]]|[[:punct:]]","",.) %>% str_trim()
+seller_adjust <- df_test$seller_ad %>% gsub("\\n|[[:digit:]]|[[:punct:]]","",.) %>% str_trim()
+df_test$seller_ad <- seller_adjust
+df_test[,.N,seller_ad]
 # complete
 ```
 

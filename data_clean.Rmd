@@ -148,6 +148,11 @@ unique(df_test$engine_ad)
 # complete
 ```
 
+```{r}
+fwrite(df_test,paste0(filepath,"data_all_clean_30_08_2021.csv"))
+fwrite(df_newcars,paste0(filepath,"data_new_clean_30_08_2021.csv"))
+fwrite(df_usedcars,paste0(filepath,"data_used_clean_30_08_2021.csv"))
+```
 
 
 

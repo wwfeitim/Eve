@@ -9,4 +9,4 @@ The next stage is to clean the data. I made some mistakes during the scraping, a
 
 # 30/08/2021 6pm
 The data clean is commpleted
-generated three data table: for all, new and used cars.
+generated three data tables: for all, new and used cars.

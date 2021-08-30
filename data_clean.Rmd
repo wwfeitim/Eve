@@ -3,9 +3,163 @@ title: "Data clean"
 author: "Wenwei Fei"
 date: "30/08/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+```{r}
+library(data.table)
+library(tidyverse)
+```
+
+```{r load path}
+filepath <- "D:/Projects/EVE/Eve/"
+df_origin <- fread(paste0(filepath,"data_collect_raw_08_30_2021.csv"))
+```
+
+```{r fix some variables & seperate new and used}
+class(df_origin) # check if data.table
+str(df_origin) # quick look
+df_test <- df_origin # avoid to make change on original data table
+# check odometer variable
+df_test[,.N,odometer]
+# classify the new and used cars where used cars always come to "XXX km". 
+df_test[, odo_adj := word(df_test$odometer,2,2)]
+# Fix incorrect seller variables
+df_test[,id:= seq(1,76819,1)]
+df_test[, seller_ad := ifelse(df_test$id <= 47999, "incorrect seller", df_test$seller)]
+# fix state
+df_test[, state_ad := ifelse(state == "", state_2,state)]
+df_test[,.N,state_ad]
+state_adjust <- df_test$state_ad %>% gsub("\n|\\-|\\n","", .) %>% str_trim() %>% word(.,1,1)
+unique(state_adjust)
+df_test[, state_only := state_adjust]
+df_test[,.N,state_only]
+# fix price
+price_ad <- gsub("\\$|\\,|\\*","", df_test$price) %>% as.numeric()
+unique(price_ad)
+df_test[, price_adj := price_ad]
+# generate new and used car data tables
+df_usedcars <- df_test[odo_adj == "km"]
+df_newcars <- rbind(df_test[!odo_adj == "km"],df_test[is.na(odo_adj)])
+```
+
+```{r adjust new or used car only}
+
+df_newcars[,.N,odometer]
+df_newcars[,.N,body]
+df_newcars[,.N,trans]
+df_newcars[,.N,engline]
+df_newcars[,.N,odo_adj]
+df_newcars[,.N,state]
+df_newcars[body_adj == 'AMT']
+
+body_type <- c("Hatch", "SUV", "Sedan", "People Mover",
+                                        "Ute", "Convertible", "Cab Chassis",
+                                        "Coupe", "Van", "AMT", "Bus", "Wagon", "Light Truck")
+# fix body type
+body_adj <- ifelse(df_newcars$body %in% c("Automatic", "Manual","DC135kW","AC140kW"), df_newcars$odometer, df_newcars$body)
+unique(body_adj)
+df_newcars[, body_adj := body_adj]
+df_newcars <- df_newcars[!body_adj == "" & body_adj!= "AMT"]
+df_newcars[,.N,body_adj]
+# fix trans 
+trans_adj <- ifelse(df_newcars$trans %in% c("Automatic", "Manual","AMT"), df_newcars$trans, df_newcars$body)
+unique(trans_adj)
+df_newcars[, trans_ad := trans_adj]
+df_newcars[,.N,trans_ad]
+df_newcars <- df_newcars[trans_ad != "Hatch"]
+# fix odometer
+df_newcars[, odo_ad := 0]
+# fix engine
+engine_adj <- ifelse(df_newcars$engline %in% "", df_newcars$trans, df_newcars$engline)
+unique(engine_adj)
+df_newcars[, engine_ad := engine_adj]
+df_newcars[,.N,engine_ad]
+# fix state
+df_newcars[,.N,state_only]
+# variable check
+df_newcars[,.N,state_only]
+df_newcars[,.N,price_adj][order(N)]
+df_newcars[,.N,body_adj]
+df_newcars[,.N,trans_ad]
+df_newcars[,.N,engine_ad]
+###########################################################
+# used car check
+df_usedcars[,.N,state_only]
+df_usedcars[,.N,price_adj][order(N)]
+df_usedcars[,.N,body]
+df_usedcars[,.N,trans]
+df_usedcars[,.N,engline]
+
+# fix body type
+df_usedcars <- df_usedcars[body != "Manual" & body != "AMT"]
+df_usedcars[, body_adj := body]
+# fix trans
+df_usedcars[,trans_ad:= trans]
+# odo 
+df_usedcars[, odo_ad := odometer]
+# fix engine
+unique(df_usedcars$engline)
+df_usedcars[, engine_ad := engline]
+
+str(df_newcars)
+
+
+
+```
+
+```{r adjust all data}
+# fix body type
+body_adj <- ifelse(df_test$body %in% c("Automatic", "Manual","DC135kW","AC140kW"), df_test$odometer, df_test$body)
+unique(body_adj)
+df_test[, body_adj := body_adj]
+df_test <- df_test[!body_adj == "" & body_adj!= "AMT"]
+df_test[,.N,body_adj]
+# fix trans 
+trans_adj <- ifelse(df_test$trans %in% c("Automatic", "Manual","AMT"), df_test$trans, df_test$body)
+unique(trans_adj)
+df_test[, trans_ad := trans_adj]
+df_test[,.N,trans_ad]
+df_test <- df_test[trans_ad != "Hatch"]
+# fix odometer
+df_test[, odo_ad := 0]
+# fix engine
+engine_adj <- ifelse(df_test$engline %in% "", df_test$trans, df_test$engline)
+unique(engine_adj)
+df_test[, engine_ad := engine_adj]
+df_test[,.N,engine_ad]
+# fix state
+df_test[,.N,state_only]
+# variable check
+df_test[,.N,state_only]
+df_test[,.N,price_adj][order(N)]
+df_test[,.N,body_adj]
+df_test <- df_test[body_adj != "147,014 km" & body_adj !="194,132 km"]
+df_test[,.N,trans_ad]
+df_test <- df_test[trans_ad != "People Mover" & trans_ad != "SUV"]
+df_test[,.N,engine_ad]
+unique(df_test$engine_ad)
+
+# complete
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -215,7 +215,6 @@ test_urls <- test_urls[,1]
 redr$navigate("https://www.carsales.com.au/cars/2021/hyundai/?sort=~Price&offset=552")
 source <- redr$getPageSource()
 page <- xml2::read_html(source[[1]])
-
 # test_odom <- page %>% html_nodes("") %>% html_text()
 ###############
 # Variables
@@ -263,11 +262,11 @@ test_dataframe <- data.frame(title=test_title, price = test_price, odometer = te
 ```
 
 ```{r apply method to all links}
-df_all <- data.frame()
 df_all <- data.table()
-
+df_urls <- data.table(urls = test_urls)
 links <- sapply(test_urls, as.character)
 redr$navigate(links[22])
+## Embed redr$navigate() into a function failed
 scraper <- function(address){
   # give value
   #url_inloop <- links
@@ -299,11 +298,14 @@ scraper <- function(address){
   ## merge
   df_all <<- rbind(df_all,df_12_il)
 }
+```
 
+
+```{r apply method to all links}
 ## unable to perform via function I built, so I tried for loop. The reason may because of the redr$getPageSource() which is not capable to run in funciton.
 
 # first #### pages
-for (i in 3500:4000) {
+for (i in 4000:4500) {
   url_inloop <- links[i]
   redr$navigate(url_inloop)
   Sys.sleep(1.1)
@@ -326,7 +328,7 @@ for (i in 3500:4000) {
   state_il <- page_inloop %>% html_nodes(".seller-location") %>% html_text()
   state_2_il <- page_inloop %>% html_nodes(".franchise-name") %>% html_text()
   ## seller
-  seller_il <- page %>% html_nodes(".seller-type") %>% html_text()
+  seller_il <- page_inloop %>% html_nodes(".seller-type") %>% html_text()
   ## df
   df_12_il <- data.table(title = title_il, price = price_il, odometer = odom_il, body = body_il, trans = trans_il, engline = engine_il, state = state_il, seller = seller_il, state_2 = state_2_il)
   ## merge
@@ -334,7 +336,13 @@ for (i in 3500:4000) {
   df_12_il <- data.table()
   print(i)
 }
+## Big mistake made here! seller_il was given by value page rather than page_inloop, which affected over 50% of relevant data, consider to delete/ignore the seller. 
+## re-scrape this variable would be time consuming because some vehicle might sold yet.
+## re-correct seller variable from #47999
+```
 
+
+```{r apply method to all links}
 df_all_fixed <- df_all[1:47998,]
 df_all_fixed[, state_2 := state]
 df_all <- df_all_fixed
@@ -342,7 +350,8 @@ df_all <- df_all_fixed
 df_all <- df_all[1:20350,]
 
 fwrite(df_all_fixed, "D:/Projects/EVE/Eve/data_collect_raw_08_29_2021.csv")
-
+fwrite(df_urls, "D:/Projects/EVE/Eve/urls.csv")
+df_all <- fread("D:/Projects/EVE/Eve/data_collect_raw_08_29_2021.csv")
 ```
 
 

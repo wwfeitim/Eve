@@ -1,0 +1,20 @@
+---
+title: "Data analysis FC vehicle"
+author: "Wenwei Fei"
+date: "30/08/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(data.table)
+library(tidyverse)
+filepath <- "D:/Projects/EVE/Eve/"
+df <- fread(paste0(filepath,"data_all_clean_30_08_2021.csv"))
+df_test <- df[,!2:10]
+df_test[,.N,odo_ad]
+```
+

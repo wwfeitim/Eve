@@ -128,7 +128,7 @@ df_test[, trans_ad := trans_adj]
 df_test[,.N,trans_ad]
 df_test <- df_test[trans_ad != "Hatch"]
 # fix odometer
-df_test[, odo_ad := 0]
+df_test[, odo_ad := as.numeric(gsub("\\$|\\,|\\*|\\km","",odometer))]
 # fix engine
 engine_adj <- ifelse(df_test$engline %in% "", df_test$trans, df_test$engline)
 unique(engine_adj)

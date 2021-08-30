@@ -3,6 +3,8 @@ title: "Data analysis FC vehicle"
 author: "Wenwei Fei"
 date: "30/08/2021"
 output: pdf_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -16,5 +18,80 @@ filepath <- "D:/Projects/EVE/Eve/"
 df <- fread(paste0(filepath,"data_all_clean_30_08_2021.csv"))
 df_test <- df[,!2:10]
 df_test[,.N,odo_ad]
+df_test <- df_test[title != ""]
+```
+
+```{r extract more detail}
+# extract make, model, year made, and badge from title
+title_sample <- df_test$title %>% data.table(title = .)
+title_sample[, make:= word(title,2,2)]
+title_sample[,.N,make]
+
+# Makes are "BMW","Holden","Hyundai","Jeep","Land Rover", "Mazda","Mitsubishi", "Nissan","Subaru","Toyota","Isuzu", "Mercedes-Benz", "Volkswagen"
+title_sample$make <- ifelse(title_sample$make == "Land", "Land Rover", title_sample$make)
+title_bkup <- title_sample
+# year made
+year <- title_sample$title %>% word(.,1,1)
+unique(year)
+title_sample[, year := year]
+# model + badge
+first_step <- ifelse(str_detect(title_sample$title,"Land Rover") == TRUE,
+                     word(title_sample$title,4,-1), word(title_sample$title,3,-1))
+
+model_badge <- gsub("\\Auto.*|\\Manual.*","",first_step)
+unique(model_badge)
+title_sample[, model_badge := model_badge]
+## separate model and badge is time consuming, I did not find a effective way to do it. 
+### I should try to separate them while scraping
+title_sample[make == "BMW", .N, model_badge][order(-N)]
+# combine two df
+df_test <- cbind(df_test,title_sample)
+```
+
+```{r}
+# BMW
+df_bmw <- df_test[make=="BMW"]
+df_bmw[, model:= ifelse(str_detect(model_badge,"Series") == TRUE,
+                        word(model_badge,1,2), word(model_badge,1))]
+df_bmw[,.N,model]
+
+# Holden
+df_holden <- df_test[make=="Holden"]
+df_holden[,.N,model_badge]
+df_holden[,model:= word(model_badge,1,1)]
+df_holden[,.N,model]
+
+# Hyundai
+df_Hyundai <- df_test[make=="Hyundai"]
+df_Hyundai[,model:= word(model_badge,1,1)]
+df_Hyundai[,.N,model]
+
+# Jeep
+df_Jeep <- df_test[make=="Jeep"]
+df_Jeep[, model:= ifelse(str_detect(model_badge,"Grand Cherokee") == TRUE,
+                        word(model_badge,1,2), word(model_badge,1))]
+df_Jeep[,.N,model]
+
+# Land Rover
+df_LandRover <- df_test[make=="Land Rover"]
+df_LandRover[, model:= ifelse(str_detect(model_badge,"Defender|Discovery") == TRUE,
+                        word(model_badge,1,1),
+                        ifelse(str_detect(model_badge,
+                                          "Discovery 4|Discovery Sport|
+                                          Freelander 2|Range Rover Evoque|Range Rover Sport|
+                                          Range Rover Velar|Range Rover Vogue") == TRUE,
+                        word(model_badge,1,3),  word(model_badge,1,2)))]
+df_LandRover[,.N,model]
+
+
+
+
+
+
+
+
+
+
+
 ```
 

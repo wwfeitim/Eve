@@ -8,6 +8,6 @@ The next stage is to clean the data. I made some mistakes during the scraping, a
 2. I did not classify the new and used cars, and most of the new cars do not record odometers whilst I applied the same approach of scraping these two categories.
 
 # 30/08/2021 6pm
-The data clean is commpleted
-generated three data tables: for all, new and used cars.
-Data generated in this project is for study purpose only.
+The data clean is commpleted  
+generated three data tables: for all, new and used cars.  
+Data generated in this project is for study purpose only.  

@@ -83,15 +83,63 @@ df_LandRover[, model:= ifelse(str_detect(model_badge,"Defender|Discovery") == TR
                         word(model_badge,1,3),  word(model_badge,1,2)))]
 df_LandRover[,.N,model]
 
+# Mazda
+df_Mazda <- df_test[make=="Mazda"]
+df_Mazda[,model:= word(model_badge,1,1)]
+df_Mazda[,.N,model]
 
+# Mitsubishi
+df_Mitsubishi <- df_test[make=="Mitsubishi"]
+df_Mitsubishi[, model:= ifelse(str_detect(model_badge,"Pajero Sport|Eclipse Cross") == TRUE,
+                        word(model_badge,1,2), word(model_badge,1))]
+df_Mitsubishi[,.N,model]
 
+# Nissan
+df_Nissan <- df_test[make=="Nissan"]
+df_Nissan[, model:= ifelse(str_detect(model_badge,"Titan XD") == TRUE,
+                        word(model_badge,1,2), word(model_badge,1))]
+df_Nissan[,.N,model]
 
+# Subaru
+df_Subaru <- df_test[make=="Subaru"]
+df_Subaru[,model:= word(model_badge,1,1)]
+df_Subaru[,.N,model]
 
+# Toyota
+df_Toyota <- df_test[make=="Toyota"]
+df_Toyota[, model:= ifelse(str_detect(model_badge,"FJ Cruiser|Landcruiser Prado|Mark X|
+                                      Prius C|Prius V|Yaris Cross") == TRUE,
+                        word(model_badge,1,2), word(model_badge,1))]
+df_Toyota[,.N,model]
 
+# Isuzu
+df_Isuzu <- df_test[make=="Isuzu"]
+df_Isuzu[, model:= ifelse(str_detect(model_badge,"F Series|N Series") == TRUE,
+                        word(model_badge,1,2), word(model_badge,1))]
+df_Isuzu[,.N,model]
 
+# Mercedes-Benz
+df_Mercedes_Benz <- df_test[make=="Mercedes-Benz"]
 
+benz_model <- ifelse(str_detect(df_Mercedes_Benz$model_badge,"AMG|Marco Polo") == TRUE,
+                        word(df_Mercedes_Benz$model_badge,1,2), word(df_Mercedes_Benz$model_badge,1,1))
+benz_model <- ifelse(str_detect(benz_model,"Class"), word(benz_model,1,1), benz_model)
+unique(benz_model)
 
+df_Mercedes_Benz[, model:= benz_model]
+df_Mercedes_Benz[,.N,model]
 
+# Volkswagen 
+df_Volkswagen <- df_test[make=="Volkswagen"]
+df_Volkswagen[,model:= word(model_badge,1,1)]
+df_Volkswagen[,.N,model]
+
+df_all_models <- rbind(df_bmw,df_holden,df_Hyundai,df_Jeep,df_LandRover,df_Mazda,df_Mitsubishi,df_Nissan,df_Subaru,df_Toyota,df_Isuzu,df_Mercedes_Benz,df_Volkswagen)
+df_all_models <- df_all_models[,-8]
+
+```
+
+```{r}
 
 ```
 

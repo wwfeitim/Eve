@@ -14,3 +14,6 @@ Data generated in this project is for study purpose only.
 
 # 31/08/2021 11am
 The models were properly separated from title variable, ready to analyse.
+
+# 31/08/2021 2pm
+The overview of data is completed, I will soon upload to my blog. 

@@ -4,7 +4,7 @@ author: "Wenwei Fei"
 date: "30/08/2021"
 output: pdf_document
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -140,6 +140,152 @@ df_all_models <- df_all_models[,-8]
 ```
 
 ```{r}
+fwrite(df_all_models,paste0(filepath,"df_all_31_08.csv"))
+```
+
+```{r analysis}
+df <- fread(paste0(filepath,"df_all_31_08.csv"))
+str(df)
+# average price for makes
+df_test <- df[!is.na(price_adj)]
+df_test[,.(avg_price = mean(price_adj)), .(make)]
+```
+
+
+```{r analysis prices}
+df[!is.na(price_adj)][,.(avg_price = mean(price_adj)), .(make)] %>% 
+  ggplot(aes(x = make, y = avg_price, color = make, fill = make))+
+  geom_col()+
+  labs(x = "Makes", y = "Average price from 2011 to 2021", title = "Average price among the top 13 popular makes from year 2011 to 2021")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+
+# median price 
+df[!is.na(price_adj)][,.(med_price = median(price_adj)), .(make)] %>% 
+  ggplot(aes(x = make, y = med_price, color = make, fill = make))+
+  geom_col()+
+  labs(x = "Makes", y = "Median price from 2011 to 2021", title = "Median price among the top 13 popular makes from year 2011 to 2021")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+
+# BMW "Land Rover" "Mercedes-Benz"
+# "Isuzu" "Jeep" Toyota" "Nissan" "Volkswagen"
+#  "Subaru", "Mitsubishi", "Mazda", "Holden", "Hyundai"
+```
+
+Among the 13 makes, BMW, Mercedes-Benz and Lan Rover have the highest average and median price, which is not surprised. 
+Interestingly, Isuzu was the 5th highest in this plot. I have never heard and saw any friends using this make, and perhaps the reason is relevant to its model. I will investigate the models in the next post. 
+I will separate these 13 makes into three groups:
+- 1: BMW, Land Rover and Mercedes-Benz
+- 2: Isuzu, Jeep, Toyota, Nissan and Volkswagen
+- 3: Subaru, Mitsubishi, Mazda, Holden and Hyundai
+
+```{r analysis}
+# compare the three most expensive makes
+## average price 
+avgprice_make_year <- df[!is.na(price_adj)][,.(avg_price = mean(price_adj)), .(make,year)]
+avgprice_make_year[make %in% c("BMW","Land Rover","Mercedes-Benz")] %>% 
+  ggplot(., aes(x = year, weight = avg_price, fill = make))+
+  geom_bar(position = position_dodge())+
+  labs(x ="Model Years", y = "Average price", title = "Changes of Average price from year 2011 to 2021 between BMW, Land Rover and Mercedes_Benz")
+## median price 
+medprice_make_year <- df[!is.na(price_adj)][,.(med_price = median(price_adj)), .(make,year)]
+medprice_make_year[make %in% c("BMW","Land Rover","Mercedes-Benz")] %>% 
+  ggplot(., aes(x = year, weight = med_price, fill = make))+
+  geom_bar(position = position_dodge())+
+  labs(x ="Model Years", y = "Median price", title = "Changes of Median price from year 2011 to 2021 between BMW, Land Rover and Mercedes_Benz")
+
+## Box plot for three makes
+df[!is.na(price_adj)][make %in% c("BMW","Land Rover","Mercedes-Benz")] %>% 
+  ggplot(.,aes(x = make, y = price_adj, color = make))+
+  geom_boxplot()+
+  labs(x ="Makes", y = "Price", title = "Distribution of prices from year 2011 to 2021 between BMW, Land Rover and Mercedes_Benz")
 
 ```
+From figure 3 to 5, there are some interesting patterns:
+- 1: Land Rover rocketed the price in the model year 2020 and 2021 whilst BMW and Benz reduced the price from the 2020 model. It also happens on Volkswagen. Buying a new Land Rover MY20 and MY21 might not be a cautious decision this year. 
+- 2: Three makes have many luxury models that cover various segments. BMW luxury covers the segment from `$150,000` to `$250,000` while the Land Rover covers the segment from `$180,000` to `$350,000`. Mercedes-Benz luxury car segment includes the BMW and Land Rover luxury segments. 
+
+
+```{r}
+# compare "Isuzu","Jeep","Toyota","Nissan","Volkswagen"
+## average price 
+avgprice_make_year <- df[!is.na(price_adj)][,.(avg_price = mean(price_adj)), .(make,year)]
+avgprice_make_year[make %in% c("Isuzu","Jeep","Toyota","Nissan","Volkswagen")] %>% 
+  ggplot(., aes(x = year, weight = avg_price, fill = make))+
+  geom_bar(position = position_dodge())+
+  labs(x ="Model Years", y = "Average price", title = "Changes of Average price from year 2011 to 2021 between Isuzu, Jeep, Toyota, Nissan and Volkswagen")
+## median price 
+medprice_make_year <- df[!is.na(price_adj)][,.(med_price = median(price_adj)), .(make,year)]
+medprice_make_year[make %in% c("Isuzu","Jeep","Toyota","Nissan","Volkswagen")] %>% 
+  ggplot(., aes(x = year, weight = med_price, fill = make))+
+  geom_bar(position = position_dodge())+
+  labs(x ="Model Years", y = "Median price", title = "Changes of Median price from year 2011 to 2021 between Isuzu, Jeep, Toyota, Nissan and Volkswagen")
+
+## Box plot for three makes
+df[!is.na(price_adj)][make %in% c("Isuzu","Jeep","Toyota","Nissan","Volkswagen")] %>% 
+  ggplot(.,aes(x = make, y = price_adj, color = make))+
+  geom_boxplot()+
+  labs(x ="Makes", y = "Price", title = "Distribution of prices from year 2011 to 2021 between Isuzu, Jeep, Toyota, Nissan and Volkswagen")
+```
+From figure 6 to 8, there are some interesting patterns:
+- 1: Jeep rocketed the price since 2018 models whilst the other makes remain a steady growth. It seems that Jeep was trying to leave its former customer segments chasing BMW and Benz. Toyota has the most stable price trend until 2020. Toyota was always the most valuable car in the market, and the old version vehicle often remains higher price than others. However, this year, Toyota changes its pricing strategy and pulled its average price to a higher level. Be careful if you decide to buy a brand new Toyota this year. 
+
+- 2: Nissan, Toyota and Volkswagen cover similar customer segments while Nissan also attracts some luxury segments in the `$300,000` price range including its famous GT-R model. As a result, if your budget is below `$50,000` but higher than `$30,000`, these five brands are good to start with. 
+
+
+```{r}
+# compare "Subaru", "Mitsubishi", "Mazda", "Holden", "Hyundai"
+## average price 
+avgprice_make_year <- df[!is.na(price_adj)][,.(avg_price = mean(price_adj)), .(make,year)]
+avgprice_make_year[make %in% c("Subaru", "Mitsubishi", "Mazda", "Holden", "Hyundai")] %>% 
+  ggplot(., aes(x = year, weight = avg_price, fill = make))+
+  geom_bar(position = position_dodge())+
+  labs(x ="Model Years", y = "Average price", title = "Changes of Average price from year 2011 to 2021 between Subaru, Mitsubishi, Mazda, Holden and Hyundai")
+## median price 
+medprice_make_year <- df[!is.na(price_adj)][,.(med_price = median(price_adj)), .(make,year)]
+medprice_make_year[make %in% c("Subaru", "Mitsubishi", "Mazda", "Holden", "Hyundai")] %>% 
+  ggplot(., aes(x = year, weight = med_price, fill = make))+
+  geom_bar(position = position_dodge())+
+  labs(x ="Model Years", y = "Median price", title = "Changes of Median price from year 2011 to 2021 between Subaru, Mitsubishi, Mazda, Holden and Hyundai")
+
+## Box plot for three makes
+df[!is.na(price_adj)][make %in% c("Subaru", "Mitsubishi", "Mazda", "Holden", "Hyundai")] %>% 
+  ggplot(.,aes(x = make, y = price_adj, color = make))+
+  geom_boxplot()+
+  labs(x ="Makes", y = "Price", title = "Distribution of prices from year 2011 to 2021 between Subaru, Mitsubishi, Mazda, Holden and Hyundai")
+```
+From figure 9 to 11, there are some interesting patterns:
+- 1: This group shows the most constant increasing trend from MY2011 to MY2021 among the three groups. Holden has the highest median price in the model years 2019 and 2020, and it no longer has the 2021 model in this year. GM Motor retired the Holden brand in 2020, and Holden vehicles might have an additional collection value reflected in its price. Surprisingly, Mazda's 2021 pricing strategy is similar to German makes reduced its average price for MY2021. Related to Mazda's great reputation, it might be the right time to consider Mazda new model this year. 
+
+- 2: Five makes in this group have similar customer segments pricing around `$25,000` while Subaru also provides luxury options up to `$165,000`.  In my opinion, these five brands suit the first car buyers the most in 2021. 
+
+
+```{r boxplot all makes}
+## Box plot for three makes
+df[!is.na(price_adj)] %>% 
+  ggplot(.,aes(x = make, y = price_adj, color = make))+
+  geom_boxplot()+
+  labs(x ="Makes", y = "Price", title = "Distribution of prices from year 2011 to 2021 between all 13 makes")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+
+```
+In figure 12, it is an overview of prices among these 13 brands. Most of these brands have similar median prices, but some also aim at higher pricing segments. Evaluating the budgets is always the first and right thing to do. Once your budget is evaluated, you can use this overview to quickly targeting on the right brands. 
+
+For me, I would advise my partner to consider Mazda and Volkswagen for MY21 cars. However, this post does not discuss the models in detail, and I will discuss more modules of each make in the next post. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

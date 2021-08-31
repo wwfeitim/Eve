@@ -11,3 +11,6 @@ The next stage is to clean the data. I made some mistakes during the scraping, a
 The data clean is commpleted  
 generated three data tables: for all, new and used cars.  
 Data generated in this project is for study purpose only.  
+
+# 31/08/2021 11am
+The models were properly separated from title variable, ready to analyse.

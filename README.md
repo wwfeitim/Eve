@@ -20,3 +20,4 @@ The overview of data is completed, I will soon upload to my blog.
 
 # 01/09/2021 10pm
 Start the analysis of model and body types in six selected brand. Some interest patterns found.
+Cross checked the data and did some minor changes. 

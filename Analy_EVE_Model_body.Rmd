@@ -191,15 +191,79 @@ gg_volkswagen_body_model_medP <- df_volkswagen[, .(med_price = median(price_adj)
 girafe(ggobj = gg_volkswagen_body_model_medP)
 ```
 
-1: Volkwagen covers alomost every body types! The bus has the highest med price at 77,000.
+1: Volkswagen covers almost every body types! The bus has the highest med price at 77,000.
+
+
+
+```{r Toyota}
+df_toyota <- df_test[make == "Toyota"]
+
+gg_toyota_body_medP <- df_toyota[, .(Median_price = median(price_adj)), .(make,body_adj)][order(Median_price)] %>% 
+  ggplot() +
+  geom_col_interactive(aes(x = body_adj, y = Median_price, fill = body_adj,tooltip = round(Median_price, 2), data_id = round(Median_price, 2))) +
+  #theme_minimal()+
+  labs(x = "Body type", y = "Median Price", title = "Toyota median price in each body type", fill = "Body Type") +
+  scale_fill_brewer(palette = "Paired")+# try palette
+  theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
+  scale_y_continuous(labels = comma) # change y axis number format
+```
+
+```{r}
+girafe(ggobj = gg_toyota_body_medP)
+```
+
+```{r Toyota medprice model body}
+df_toyota[, .(med_price = median(price_adj)), .(model,body_adj)]
+
+gg_toyota_body_model_medP <- df_toyota[, .(med_price = median(price_adj)), .(model,body_adj)] %>% 
+  ggplot()+
+  geom_col_interactive(aes(x = model, y = med_price, fill = body_adj, 
+                           tooltip = med_price, data_id = med_price))+
+  labs(x = "Model", y ="stacked median price", title = "Toyota stacked median price betwen body type and model", fill = "Body Type")+
+  scale_fill_brewer(palette = "Paired")+
+  theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
+  scale_y_continuous(labels = comma) # change y axis number format
+```
+
+```{r}
+girafe(ggobj = gg_toyota_body_model_medP)
+```
 
 
 
 
+```{r Nissan}
+df_Nissan <- df_test[make == "Nissan"]
 
+gg_Nissan_body_medP <- df_Nissan[, .(Median_price = median(price_adj)), .(make,body_adj)][order(Median_price)] %>% 
+  ggplot() +
+  geom_col_interactive(aes(x = body_adj, y = Median_price, fill = body_adj,tooltip = round(Median_price, 2), data_id = round(Median_price, 2))) +
+  #theme_minimal()+
+  labs(x = "Body type", y = "Median Price", title = "Toyota median price in each body type", fill = "Body Type") +
+  scale_fill_brewer(palette = "Paired")+# try palette
+  theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
+  scale_y_continuous(labels = comma) # change y axis number format
+```
 
+```{r}
+girafe(ggobj = gg_Nissan_body_medP)
+```
 
+```{r Nissan medprice model body}
+df_Nissan[, .(med_price = median(price_adj)), .(model,body_adj)]
 
+gg_Nissan_body_model_medP <- df_Nissan[, .(med_price = median(price_adj)), .(model,body_adj)] %>% 
+  ggplot()+
+  geom_col_interactive(aes(x = model, y = med_price, fill = body_adj, 
+                           tooltip = med_price, data_id = med_price))+
+  labs(x = "Model", y ="stacked median price", title = "Toyota stacked median price betwen body type and model", fill = "Body Type")+
+  scale_fill_brewer(palette = "Paired")+
+  theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
+  scale_y_continuous(labels = comma) # change y axis number format
+```
 
+```{r}
+girafe(ggobj = gg_Nissan_body_model_medP)
+```
 
 

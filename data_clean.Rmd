@@ -32,6 +32,7 @@ df_test[, odo_adj := word(df_test$odometer,2,2)]
 # Fix incorrect seller variables
 df_test[,id:= seq(1,76819,1)]
 df_test[, seller_ad := ifelse(df_test$id <= 47999, "incorrect seller", df_test$seller)]
+
 # fix state
 df_test[, state_ad := ifelse(state == "", state_2,state)]
 df_test[,.N,state_ad]
@@ -39,6 +40,7 @@ state_adjust <- df_test$state_ad %>% gsub("\n|\\-|\\n","", .) %>% str_trim() %>%
 unique(state_adjust)
 df_test[, state_only := state_adjust]
 df_test[,.N,state_only]
+
 # fix price
 price_ad <- gsub("\\$|\\,|\\*","", df_test$price) %>% as.numeric()
 unique(price_ad)
@@ -119,26 +121,34 @@ str(df_newcars)
 body_adj <- ifelse(df_test$body %in% c("Automatic", "Manual","DC135kW","AC140kW"), df_test$odometer, df_test$body)
 unique(body_adj)
 df_test[, body_adj := body_adj]
-df_test <- df_test[!body_adj == "" & body_adj!= "AMT"]
+df_test <- df_test[!body_adj %in% c("","AMT","147,014 km","194,132 km")]
 df_test[,.N,body_adj]
 # fix trans 
 trans_adj <- ifelse(df_test$trans %in% c("Automatic", "Manual","AMT"), df_test$trans, df_test$body)
 unique(trans_adj)
 df_test[, trans_ad := trans_adj]
 df_test[,.N,trans_ad]
-df_test <- df_test[trans_ad != "Hatch"]
+df_test <- df_test[!trans_ad %in% c("Hatch","SUV")]
+
 # fix odometer
 df_test[, odo_ad := as.numeric(gsub("\\$|\\,|\\*|\\km","",odometer))]
+df_test[,.N,odo_ad][order(odo_ad)]
+df_test[is.na(odo_ad),.N,odometer] # fix new car's odometer
+df_test[, odo_ad:= ifelse(is.na(odo_ad), 0, odo_ad)] # give 0 to new cars
+
 # fix engine
 engine_adj <- ifelse(df_test$engline %in% "", df_test$trans, df_test$engline)
 unique(engine_adj)
 df_test[, engine_ad := engine_adj]
 df_test[,.N,engine_ad]
+
 # fix state
 df_test[,.N,state_only]
+
 # variable check
 df_test[,.N,state_only]
-df_test[,.N,price_adj][order(N)]
+df_test[,.N,price_adj][order(price_adj)] # 162 car prices are negotiable
+df_test <- df_test[!price_adj == is.na(price_adj)]
 df_test[,.N,body_adj]
 df_test <- df_test[body_adj != "147,014 km" & body_adj !="194,132 km"]
 df_test[,.N,trans_ad]
@@ -152,6 +162,7 @@ seller_adjust %>% gsub("\\n|[[:digit:]]|[[:punct:]]","",.) %>% str_trim()
 seller_adjust <- df_test$seller_ad %>% gsub("\\n|[[:digit:]]|[[:punct:]]","",.) %>% str_trim()
 df_test$seller_ad <- seller_adjust
 df_test[,.N,seller_ad]
+df_test[, seller_ad := ifelse(seller_ad == "", "unknow", seller_ad)]
 # complete
 ```
 

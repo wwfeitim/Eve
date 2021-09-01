@@ -1,0 +1,54 @@
+---
+title: "analysis_EVE_model_body"
+author: "Wenwei Fei"
+date: "01/09/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(data.table)
+library(tidyverse)
+filepath <- "D:/Projects/EVE/Eve/"
+df <- fread(paste0(filepath,"df_all_31_08.csv"))
+df_test <- df
+df_test <- df_test[!title %in% c("",is.na(title))] # check blank and NA
+```
+
+```{r}
+df_test[make=="BMW", .N, body_adj]
+df_test[make == "BMW", .(avg_price = mean(price_adj)), .(make,body_adj)][order(avg_price)]
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

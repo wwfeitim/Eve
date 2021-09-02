@@ -8,7 +8,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r}
@@ -27,6 +27,92 @@ df_test <- df_test[!title %in% c("",is.na(title))] # check blank and NA
 df_test[,.N,make]
 ```
 
+# Overview
+
+This post is the second part following by my last post. In this post, I include the models and body types and analyse the trends and patterns among the 13 brands. 
+
+Due to the matter of time, I only focus on the five brands: BMW, Holden, Mazda, Volkswagen and Toyota. If you interest in other brands, you are welcome to visit my Github. The data I collected is for study only, and no one should use it for commercial purposes. I hope this post can help you to match your budgets and cars, and find your ideal cars for family or commercial use. 
+
+At the end of this post, I will also answer the question: 
+Does the dealer price the cars higher? 
+
+```{r overview body 1}
+gg_all_body_medP <- df_test[, .(med_price = median(price_adj)), body_adj] %>% 
+  ggplot()+
+  geom_col_interactive(aes(x = body_adj, y = med_price, fill = body_adj, tooltip = med_price, data_id = med_price))+
+  labs(x = "Body type", y = "Median Price", title = "All brands median price in each body type", fill = "Body Type") +
+  scale_fill_brewer(palette = "Paired")+# try palette
+  theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
+  scale_y_continuous(labels = comma) # change y axis number format
+
+df_test[, .(med_price = median(price_adj)), body_adj]
+```
+
+```{r overview body 2}
+gg_all_boxplot <- df_test %>% 
+  ggplot(.)+
+  geom_boxplot_interactive(aes(x = body_adj, y = price_adj, fill = body_adj,
+                   tooltip = body_adj, data_id = body_adj))+
+  labs(x = "Body type", y = "Median Price", title = "All brands median price in each body type", fill = "Body Type") +
+  scale_fill_brewer(palette = "Paired")+
+  theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
+  scale_y_continuous(labels = comma, breaks = seq(0,470000,50000))
+```
+
+```{r new car boxplot}
+gg_newcar_boxplot <- df_test[year %in% c(2021,2020)] %>% 
+  ggplot(.)+
+  geom_boxplot_interactive(aes(x = body_adj, y = price_adj, fill = body_adj,
+                   tooltip = body_adj, data_id = body_adj))+
+  labs(x = "Body type", y = "Median Price", title = "All brands MY20 and MY21 median price in each body type", fill = "Body Type") +
+  scale_fill_brewer(palette = "Paired")+
+  theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
+  scale_y_continuous(labels = comma, breaks = seq(0,470000,25000))
+```
+
+```{r barplot1, fig.cap='Median price of all brands and body types'}
+girafe(ggobj = gg_all_body_medP)
+```
+
+```{r box1, fig.cap='Median price of all brands and body types'}
+girafe(ggobj = gg_all_boxplot)
+```
+
+This figure includes the model years from 2011 to 2021.  The median price of body types is lower than 50,000 AUD. There is more than 50% number of cars in the market are less than 50,000 AUD. Hatch, Sedan, and Wagon have the lowest median price among all body types approx. 25,000 AUD. However, there are vital changes if we only focus on the MY20 and MY21.
+
+```{r box2, fig.cap='Median price of MY20 and MY21 of all brands and body types'}
+girafe(ggobj = gg_newcar_boxplot)
+```
+
+In MY20 and MY21 (model years), the median price of these body types among 13 brands is over 50,000 except hatch and SUV. Nowadays, the hatch is becoming more popular for individual use for working and shopping while the family rely on the space an SUV provides. However, it is terrible news for many small businesses because they often use larger body types, such as Van, Ute and Cab Chassis, and these body types are a lot more expansive than the older MY in the last plot. 
+
+```{r Percentage change between MY11~19 and MY20&21}
+med_price_all <- df_test[!year %in% c(2020,2021),.(med_price = median(price_adj)), .(body_adj)]
+med_price_new <- df_test[year %in% c(2020,2021),.(med_price_new = median(price_adj))
+                         , .(body_adj)]
+med_price_body <- merge(med_price_all,med_price_new)
+
+df_change <- med_price_body[, .(change = (med_price_new / med_price)-1), body_adj]
+
+gg_changes <- ggplot(df_change)+
+  geom_col_interactive(aes(x = body_adj, y = change, tooltip = change, data_id = change, fill = body_adj))+
+  labs(x = "Body type", y = "Median Price % change", title = "% changes of med price  between MY20&21 and older MY", fill = "Body Type") +
+  scale_fill_brewer(palette = "Paired")+
+  theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
+  scale_y_continuous(labels = percent)+
+  geom_text(aes(label = percent(change)), position = position_dodge(width = 0.5),
+            hjust = 0.5, vjust = -0.3, size = 2.5, angle = 0 )
+```
+
+```{r barchanges, fig.cap='Percentage change from all MY to MY20 and MY21'}
+girafe(ggobj = gg_changes)
+```
+
+From figure \@ref(fig:barchanges), the median price of MY20&21 has at least 41% higher than the med price of old model years while the Wagon, People Mover and Sedan remain the fastest increment.
+
+
+# BMW
+
 ```{r BMW}
 df_bmw <- df_test[make == "BMW"]
 df_bmw[,.N, badge_series]
@@ -38,7 +124,7 @@ gg_bmw_body_medP <- df_test[make == "BMW", .(Median_price = median(price_adj)), 
   ggplot() +
   geom_col_interactive(aes(x = body_adj, y = Median_price, fill = body_adj,tooltip = round(Median_price, 2), data_id = round(Median_price, 2))) +
   #theme_minimal()+
-  labs(x = "Body type", y = "Median Price", title = "BMW median price in each body type", fill = "Body Type") +
+  labs(x = "Body type", y = "Median Price", title = "BMW median price of each body type", fill = "Body Type") +
   scale_fill_brewer(palette = "Paired")+# try palette
   theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
   scale_y_continuous(labels = comma) # change y axis number format
@@ -51,18 +137,18 @@ gg_bmw_body_model_medP <- df_bmw[, .(med_price = median(price_adj)), .(model,bod
   ggplot()+
   geom_col_interactive(aes(x = model, y = med_price, fill = body_adj, 
                            tooltip = med_price, data_id = med_price))+
-  labs(x = "Model", y ="stacked median price", title = "BMW stacked median price betwen body type and model", fill = "Body Type")+
+  labs(x = "Model", y ="stacked median price", title = "BMW stacked median price for body type and model", fill = "Body Type")+
   scale_fill_brewer(palette = "Paired")+
   theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
   scale_y_continuous(labels = comma) # change y axis number format
 ```
 
-```{r}
+```{r bar2, fig.cap='BMW median price and body type'}
 # column plot
 girafe(ggobj = gg_bmw_body_medP)
 ```
 
-```{r}
+```{r bar3, fig.cap='BMW stacked med price for model and body type'}
 # stacked column plot
 girafe(ggobj = gg_bmw_body_model_medP)
 
@@ -74,6 +160,8 @@ girafe(ggobj = gg_bmw_body_model_medP)
 
 3: Series model covers five body types except for SUV. The buyer who has a limited budget could consider the Series model first. However, the buyer who only interests in the BMW SUV body type should only pay attention to the X model.
 
+# Holden
+
 ```{r Holden}
 df_holden <- df_test[make == "Holden" & body_adj != "Van"]
 
@@ -81,13 +169,13 @@ gg_holden_body_medP <- df_holden[, .(Median_price = median(price_adj)), .(make,b
   ggplot() +
   geom_col_interactive(aes(x = body_adj, y = Median_price, fill = body_adj,tooltip = round(Median_price, 2), data_id = round(Median_price, 2))) +
   #theme_minimal()+
-  labs(x = "Body type", y = "Median Price", title = "Holden median price in each body type", fill = "Body Type") +
+  labs(x = "Body type", y = "Median Price", title = "Holden median price of each body type", fill = "Body Type") +
   scale_fill_brewer(palette = "Paired")+# try palette
   theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
   scale_y_continuous(labels = comma) # change y axis number format
 ```
 
-```{r}
+```{r bar4, fig.cap='Holden median price and body type'}
 girafe(ggobj = gg_holden_body_medP)
 ```
 
@@ -98,21 +186,21 @@ gg_holden_body_model_medP <- df_holden[, .(med_price = median(price_adj)), .(mod
   ggplot()+
   geom_col_interactive(aes(x = model, y = med_price, fill = body_adj, 
                            tooltip = med_price, data_id = med_price))+
-  labs(x = "Model", y ="stacked median price", title = "Holden stacked median price betwen body type and model", fill = "Body Type")+
+  labs(x = "Model", y ="stacked median price", title = "Holden stacked median price for body type and model", fill = "Body Type")+
   scale_fill_brewer(palette = "Paired")+
   theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
   scale_y_continuous(labels = comma) # change y axis number format
 ```
 
-```{r}
+```{r bar5, fig.cap='Holden stacked med price for model and body type'}
 girafe(ggobj = gg_holden_body_model_medP)
 ```
 
-1: In Holden, hatch has the lowest median price among body types, which is around `$13,000`. Ute and Cab Chassis have the top two highest med price. In my memory, these two body types are popular and economical selections for many handymen and builders.
+1: In Holden, hatch has the lowest median price among body types, which is around `$13,000`. Ute and Cab Chassis have the top two highest med price. In my memory, these two body types are popular and economical selections for handymen and builders.
 
-2: Holden's models and body types are messy. Some models (like Acadia & Trailblazer, Calais & Commodore) have similar pricing segments and the same body types. I wonder why Holden made so many model names and only a few of them are popular in the market like Commodore, Ute, Colorado and Cruze. 
+2: Holden's models and body types are slightly messy. Some models (like Acadia & Trailblazer, Calais & Commodore) have similar pricing segments and the same body types. I wonder why Holden made so many model names and only a few of them are popular in the market like Commodore, Ute, Colorado and Cruze. 
 
-
+# Mazda
 
 ```{r Mazda}
 df_mazda <- df_test[make == "Mazda"]
@@ -121,13 +209,13 @@ gg_mazda_body_medP <- df_mazda[, .(Median_price = median(price_adj)), .(make,bod
   ggplot() +
   geom_col_interactive(aes(x = body_adj, y = Median_price, fill = body_adj,tooltip = round(Median_price, 2), data_id = round(Median_price, 2))) +
   #theme_minimal()+
-  labs(x = "Body type", y = "Median Price", title = "Mazda median price in each body type", fill = "Body Type") +
+  labs(x = "Body type", y = "Median Price", title = "Mazda median price of each body type", fill = "Body Type") +
   scale_fill_brewer(palette = "Paired")+# try palette
   theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
   scale_y_continuous(labels = comma) # change y axis number format
 ```
 
-```{r}
+```{r bar6, fig.cap='Mazda median price and body type'}
 girafe(ggobj = gg_mazda_body_medP)
 ```
 
@@ -138,13 +226,13 @@ gg_mazda_body_model_medP <- df_mazda[, .(med_price = median(price_adj)), .(model
   ggplot()+
   geom_col_interactive(aes(x = model, y = med_price, fill = body_adj, 
                            tooltip = med_price, data_id = med_price))+
-  labs(x = "Model", y ="stacked median price", title = "Mazda stacked median price betwen body type and model", fill = "Body Type")+
+  labs(x = "Model", y ="stacked median price", title = "Mazda stacked median price for body type and model", fill = "Body Type")+
   scale_fill_brewer(palette = "Paired")+
   theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
   scale_y_continuous(labels = comma) # change y axis number format
 ```
 
-```{r}
+```{r bar7, fig.cap='Mazda stacked med price for model and body type'}
 girafe(ggobj = gg_mazda_body_model_medP)
 ```
 
@@ -153,9 +241,10 @@ girafe(ggobj = gg_mazda_body_model_medP)
 	b: SUV, Cab Chassis and Convertible ($ 30,000 - 34,000)
 	c: Coupe and Ute ($ 38,000 to 40,000) 
 	
-2: Mazda pricing strategy is a lot tidy compare to Holden's. Models 2,3 and 6 target the family general using in the first body type group. CX model provides SUV cars only with various price ranges. 
+2: Mazda pricing strategy is a lot tidy compare to Holden's. Models 2,3 and 6 target the family's general use in the first body type group. CX model provides SUV cars only with various price ranges. 
 
 
+# Volkswagen
 
 ```{r Volkswagen}
 df_volkswagen <- df_test[make == "Volkswagen"]
@@ -164,14 +253,31 @@ gg_volkswagen_body_medP <- df_volkswagen[, .(Median_price = median(price_adj)), 
   ggplot() +
   geom_col_interactive(aes(x = body_adj, y = Median_price, fill = body_adj,tooltip = round(Median_price, 2), data_id = round(Median_price, 2))) +
   #theme_minimal()+
-  labs(x = "Body type", y = "Median Price", title = "Volkswagen median price in each body type", fill = "Body Type") +
+  labs(x = "Body type", y = "Median Price", title = "Volkswagen median price of each body type", fill = "Body Type") +
   scale_fill_brewer(palette = "Paired")+# try palette
   theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
   scale_y_continuous(labels = comma) # change y axis number format
 ```
 
-```{r}
+```{r boxvolk}
+gg_box_volkswagen_medp_body <- df_volkswagen %>% 
+  ggplot()+
+  geom_boxplot_interactive(aes(
+    x = body_adj, y = price_adj, fill = body_adj, tooltip = body_adj, data_id = body_adj
+  )) +
+  labs(x = "Body type", y = "Median Price", title = "Volkswagen median price of each body type", fill = "Body Type") +
+  scale_fill_brewer(palette = "Paired")+# try palette
+  theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
+  scale_y_continuous(labels = comma) # change y axis number format
+```
+
+
+```{r bar8, fig.cap='Volkswagen median price and body type'}
 girafe(ggobj = gg_volkswagen_body_medP)
+```
+
+```{r boxvolk, fig.cap='Volkswagen median price of each body type'}
+girafe(ggobj = gg_box_volkswagen_medp_body)
 ```
 
 ```{r Volkswagen medprice model body}
@@ -181,19 +287,25 @@ gg_volkswagen_body_model_medP <- df_volkswagen[, .(med_price = median(price_adj)
   ggplot()+
   geom_col_interactive(aes(x = model, y = med_price, fill = body_adj, 
                            tooltip = med_price, data_id = med_price))+
-  labs(x = "Model", y ="stacked median price", title = "Volkswagen stacked median price betwen body type and model", fill = "Body Type")+
+  labs(x = "Model", y ="stacked median price", title = "Volkswagen stacked median price for body type and model", fill = "Body Type")+
   scale_fill_brewer(palette = "Paired")+
   theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
   scale_y_continuous(labels = comma) # change y axis number format
 ```
 
-```{r}
+```{r bar9, fig.cap='Volkswagen stacked med price for model and body type'}
 girafe(ggobj = gg_volkswagen_body_model_medP)
 ```
 
-1: Volkswagen covers almost every body types! The bus has the highest med price at 77,000.
+```{r}
+df_volkswagen[body_adj %in% c("Convertible", "Coupe "), .N, year]
+```
 
+1: Volkswagen covers almost every body types! The bus has the highest med price at 76,990. Surprisingly, the med prices of Convertible and Coupe are relatively low, which is against my intuition. This is because the model years of these two body types are from 2011 to 2014. Hatch, Sedan and Wagon have the med price close to or lower than 25,000 AUD. It makes these three body types the ideal types for students and new graduates who have a limited budget. 
 
+2: Those who interest in the Hatch, Sedan and Wagon with a limited budget, can pay some attention to the models including Polo, Beetle, Golf and Passat. Golf and Passat also provide some decent options for SUV type, and families with a sufficient budget could consider higher quality, such as T-Cross, T-Roc, Tiguan and Touareg. 
+
+# Toyota
 
 ```{r Toyota}
 df_toyota <- df_test[make == "Toyota"]
@@ -208,8 +320,24 @@ gg_toyota_body_medP <- df_toyota[, .(Median_price = median(price_adj)), .(make,b
   scale_y_continuous(labels = comma) # change y axis number format
 ```
 
-```{r}
+```{r boxToyota}
+gg_box_Toyota_medp_body <- df_toyota %>% 
+  ggplot()+
+  geom_boxplot_interactive(aes(
+    x = body_adj, y = price_adj, fill = body_adj, tooltip = body_adj, data_id = body_adj
+  )) +
+  labs(x = "Body type", y = "Median Price", title = "Toyota median price of each body type", fill = "Body Type") +
+  scale_fill_brewer(palette = "Paired")+# try palette
+  theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
+  scale_y_continuous(labels = comma) # change y axis number format
+```
+
+```{r bar10, fig.cap='Toyota median price and body type'}
 girafe(ggobj = gg_toyota_body_medP)
+```
+
+```{r boxToyota, fig.cap='Toyota median price of each body type'}
+girafe(ggobj = gg_box_Toyota_medp_body)
 ```
 
 ```{r Toyota medprice model body}
@@ -225,45 +353,59 @@ gg_toyota_body_model_medP <- df_toyota[, .(med_price = median(price_adj)), .(mod
   scale_y_continuous(labels = comma) # change y axis number format
 ```
 
-```{r}
+```{r bar9, fig.cap='Toyota stacked med price for model and body type'}
 girafe(ggobj = gg_toyota_body_model_medP)
 ```
 
+```{r mean price compare}
+df_meanp_toyota <- df_toyota[, .(meanprice_toyota = mean(price_adj)), year]
+df_meanp_exc_toyota <- df_test[!make == "Toyota", .(meanprice_exclud_toyota = mean(price_adj)), year]
+df_meanp <- merge(df_meanp_toyota, df_meanp_exc_toyota)
 
-
-
-```{r Nissan}
-df_Nissan <- df_test[make == "Nissan"]
-
-gg_Nissan_body_medP <- df_Nissan[, .(Median_price = median(price_adj)), .(make,body_adj)][order(Median_price)] %>% 
-  ggplot() +
-  geom_col_interactive(aes(x = body_adj, y = Median_price, fill = body_adj,tooltip = round(Median_price, 2), data_id = round(Median_price, 2))) +
-  #theme_minimal()+
-  labs(x = "Body type", y = "Median Price", title = "Toyota median price in each body type", fill = "Body Type") +
-  scale_fill_brewer(palette = "Paired")+# try palette
-  theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
-  scale_y_continuous(labels = comma) # change y axis number format
+gg_meanprice_compare <- df_meanp %>% 
+  ggplot()+
+  geom_line(aes(
+    x = year, y = meanprice_toyota, color = "Toyota"
+  ))+
+  geom_point_interactive(aes(
+    x = year, y = meanprice_toyota, color = "Toyota", tooltip = meanprice_toyota, data_id = meanprice_toyota
+  ))+
+  geom_line(aes(x = year, y = meanprice_exclud_toyota, color = "Others"))+
+  geom_point_interactive(aes(
+    x = year, y = meanprice_exclud_toyota, color = "Others", tooltip = meanprice_exclud_toyota, data_id = meanprice_exclud_toyota
+  ))+
+  scale_x_continuous(breaks = seq(2011,2021,1))+
+  labs(x = "Model Years", y = "Mean Prices", title = "Mean Prices of Toyota and other Brands in Australia", color = "Brand")
 ```
+
+```{r linemeanprice, fig.cap='Mean Prices of Toyota and other Brands'}
+girafe(ggobj = gg_meanprice_compare)
+```
+
+1: Toyota also provides a wide range of body types and price segments. Below 25,000 AUD, people can chose Hatch, Sedan and Wagon. You might realise that the third quartiles for these three body types are slightly larger than the second quartiles. This could imply the increment of med prices in Toyota MY21 cars as introduced in the last post. 
+
+2: From figure \@ref(fig:bar9), Toyota invests most of its resources into three body types: People Mover, Sedan and SUV, and the order of price for these three body types from high to low is People Mover, SUV and Sedan. Same as the other brands, Hatch and Wagon are generally below 27,000 AUD. It makes them the best affordable body types for young generations. Hiace is a popular Toyota model focusing on the multi-purpose, and it has four body type options with reasonable price ranges. 
+
+3: Six years ago before I bought my first car, many people told me Toyota cars often keep their value.  Because of this, my first car was a 2002 Camry. To proof this conclusion right, I made figure \@ref(fig:linemeanprice). In figure \@ref(fig:linemeanprice), The average price of Toyota cars remains constant between 25,000 and 30,000 until MY2019. Model years after 2019 exhibit incredible increments compare to the former MYs.  For the other brands, the average price shows a linear increase from MY11 to MY19 following by an increment for MY20 and a huge fall for MY21. Base on this figure, I suspect the idea that Toyota cars can still keep their value in a long-term period after MY20. 
+
 
 ```{r}
-girafe(ggobj = gg_Nissan_body_medP)
-```
-
-```{r Nissan medprice model body}
-df_Nissan[, .(med_price = median(price_adj)), .(model,body_adj)]
-
-gg_Nissan_body_model_medP <- df_Nissan[, .(med_price = median(price_adj)), .(model,body_adj)] %>% 
+gg_seller <- df_test[!seller_ad == "incorrect seller"] %>% 
   ggplot()+
-  geom_col_interactive(aes(x = model, y = med_price, fill = body_adj, 
-                           tooltip = med_price, data_id = med_price))+
-  labs(x = "Model", y ="stacked median price", title = "Toyota stacked median price betwen body type and model", fill = "Body Type")+
+  geom_boxplot_interactive(aes(
+    x = seller_ad, y = price_adj, fill = seller_ad, tooltip = seller_ad, data_id = seller_ad
+  ))+
+  labs(x = "Seller", y = "Price", title = "Price made between dealer and private", fill = "Seller") +
   scale_fill_brewer(palette = "Paired")+
   theme(axis.text.x = element_text(angle = 90, vjust =0.5))+
-  scale_y_continuous(labels = comma) # change y axis number format
+  scale_y_continuous(labels = comma, breaks = seq(0,470000,50000))
 ```
 
-```{r}
-girafe(ggobj = gg_Nissan_body_model_medP)
+```{r boxseller, fig.cap='Price made between dealer and private'}
+girafe(ggobj = gg_seller)
 ```
 
+In the figure \@ref(fig:boxseller), The price distributed between Dealer Used Car and Private Seller Car is dramatically similar. It is a piece of significant evidence that many private sellers likely follow dealers' pricing approaches. 
 
+The price distributed between Dealer Used Car and Private Seller Car is dramatically similar. It is a piece of significant evidence that many private sellers likely follow dealers' pricing approaches.
+Consider that dealers often provide better covers on their vehicles, buyers who lack motor knowledge are recommended to evaluate dealer's offers first. 

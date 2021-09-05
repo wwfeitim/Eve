@@ -409,3 +409,40 @@ In the figure \@ref(fig:boxseller), The price distributed between Dealer Used Ca
 
 The price distributed between Dealer Used Car and Private Seller Car is dramatically similar. It is a piece of significant evidence that many private sellers likely follow dealers' pricing approaches.
 Consider that dealers often provide better covers on their vehicles, buyers who lack motor knowledge are recommended to evaluate dealer's offers first. 
+
+```{r state analysis}
+df_test[!state_only == ""]# valid number of sample
+df_states <- df_test[!state_only == "", .(averagprice = mean(price_adj), medprice = median(price_adj)), .(state_only)][order(-averagprice)]
+df_states[, avg_rate := percent(averagprice/min(averagprice)-1)][, med_rate := medprice/min(medprice)]
+gg_state <- df_states[, avg_rate := percent(averagprice/min(averagprice)-1)][, med_rate := medprice/min(medprice)] %>% 
+  ggplot(aes(x = state_only, y = averagprice))+
+  geom_col_interactive(aes(fill = state_only, tooltip = averagprice, data_id = averagprice))+
+  geom_text(aes(label = avg_rate), vjust = -0.5, hjust = 0.5)+
+  scale_fill_brewer(palette = "Paired")+
+  coord_cartesian(ylim = c(30000,43000))+
+  scale_y_continuous(labels = comma)+
+  labs( x = "State", y = "Average Price", title = "Average Price in States & % changes compare to NT", fill = "State")
+
+```
+
+```{r barstate, fig.cap='Average Price in States & % changes compare to NT'}
+ggiraph(ggobj = gg_state)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

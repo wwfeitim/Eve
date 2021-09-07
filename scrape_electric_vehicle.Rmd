@@ -1,0 +1,146 @@
+---
+title: "Scrape_electric_car"
+author: "Wenwei Fei"
+date: "07/09/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+library(tidyverse)
+library(RSelenium)
+library(rvest)
+library(xml2)
+library(httr)
+library(data.table)
+```
+
+```{r server pack}
+# Check the available chrome version, the default is latest
+verlist <- binman::list_versions("chromedriver") %>% flatten_chr()
+# check my chrome version. wmic: WMI command-line 
+version <- system2(command = "wmic",args = 'datafile where name="C:\\\\Program Files (x86)\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe" get Version /value',stdout = TRUE,stderr = TRUE)
+version <- str_sub(version[3],start = 9,end = -2)
+# select the latest version earlier the current chrome version 
+ver <- max(verlist[version > verlist])
+# driver setting
+driver <- rsDriver(browser = "chrome", chromever = ver)
+driver$client$close()
+redr <- driver[["client"]]
+redr$open()
+# redr$close()
+```
+
+```{r port kill}
+# to cleanup the port, by kill the java instance(s) inside Rstudio
+# refer: https://github.com/ropensci/RSelenium/issues/228
+system("taskkill /im java.exe /f", intern=FALSE, ignore.stdout=FALSE)
+# check if ports still open
+pingr::ping_port("localhost", 4567)
+```
+
+```{r test}
+url <- "https://www.carsales.com.au/cars/new/electric-fueltype/?sort=Price&offset=12"
+redr$navigate(url)
+
+# rvest failed
+```
+
+```{r page numers}
+soup <- redr$getPageSource()
+page <- xml2::read_html(soup[[1]])
+
+number_of_car <- page %>% html_node(".no-gutters .title") %>% html_text() %>% word(.,1,1) %>% as.numeric()
+
+# Page numbers monitor
+ifelse(number_of_car <= 993, 
+       paste("Number of cars is valid, and","Total pages are",floor(number_of_car/12)),
+       paste("Number of cars is over 993, please apply additional filters"))
+
+```
+
+```{r apply pages numbers}
+test_12cars <- page %>% html_nodes(".price .js-encode-search") %>% 
+  html_attr("href") %>% paste0(url_carsales,.) %>% data.table()
+
+
+url_carsales <- "https://www.carsales.com.au"
+urls_new <- "https://www.carsales.com.au/cars/new/electric-fueltype/?sort=Price&offset="
+urls_used <- "https://www.carsales.com.au/cars/used/electric-fueltype/?sort=Price&offset="
+urls_demo <- "https://www.carsales.com.au/cars/demo-and-near-new/electric-fueltype/?sort=Price&offset="
+
+links_new <- data.table()
+for (i in (seq(1,38,1)*12)) {
+  url_with_number <- paste0(urls_new,i)
+  links_new <<- rbind(links_new, url_with_number)
+}
+
+links_used <- data.table()
+for (i in (seq(1,16,1)*12)) {
+  url_with_number <- paste0(urls_used,i)
+  links_used <<- rbind(links_used, url_with_number)
+}
+
+links_demo <- data.table()
+for (i in (seq(1,16,1)*12)) {
+  url_with_number <- paste0(urls_demo,i)
+  links_demo <<- rbind(links_demo, url_with_number)
+}
+```
+
+
+```{r test}
+links_new[[1]][1]
+redr$navigate(links_new[[1]][1])
+length(links_new[[1]])
+test_1 <- page %>% html_nodes(".card-body") %>% html_text() %>% gsub("\n"," ",.) %>% str_trim()
+test_1 <- page %>% html_nodes(".card-body") %>% html_text() %>% data.table()
+
+
+test_1[2]
+test_1[2] %>% str_remove(.,",") %>% 
+  str_extract(., "\\DC[0-9]+")
+
+page %>% html_nodes(".key-details__value:nth-child(4)") %>% html_text()
+```
+
+```{r extract href}
+list_cars <- data.table()
+
+for (i in 1:16) {
+  redr$navigate(links_new[[1]][i])
+  soup_if <- redr$getPageSource()
+  page_if <- xml2::read_html(soup_if[[1]])
+  list_12cars_if <- page %>% html_nodes(".card-body") %>% html_text()
+  list_cars <<- rbind(list_cars, list_12cars_if)
+}
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

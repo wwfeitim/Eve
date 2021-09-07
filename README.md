@@ -24,3 +24,6 @@ Cross checked the data and did some minor changes.
 
 # 02/09/2021 5:30 pm
 Completed the new post: Models and Body Types Analysis in Australia car market
+
+# 07/09/2021 7:40pm
+Electric car data collected including 858 electri cars on sale.

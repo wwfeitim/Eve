@@ -1,0 +1,199 @@
+---
+title: "Electric car data clean"
+author: "Wenwei Fei"
+date: "08/09/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(data.table)
+```
+
+```{r test}
+list_new <- data.table(list_cars_new)
+
+list_cars_new$raw_ele[1] %>% 
+  str_remove_all(.,"\n|  ")
+
+# title
+list_cars_new$raw_ele[1] %>% 
+  str_remove_all(.,"\n|  |,") %>% 
+  str_remove_all(., "\\$.*")
+```
+
+```{r new}
+list_new[, raw_ele := str_remove_all(raw_ele,"\n|  |,")]
+
+# title
+list_new[, titles := str_remove_all(raw_ele, "\\$.*|Enquire.*")]
+
+# price
+list_new$raw_ele[347]
+## remove special offer information (white noise)
+list_new[, raw_adjust := str_remove_all(raw_ele, "\\Special Offer.*")]
+price <- str_extract_all(list_new$raw_adjust, "\\$.[0-9]+|\\Enquire for price")
+list_new$price <- price
+# model year
+list_new[, Model_year := word(raw_adjust, 1, 1)]
+# Make 
+list_new[, Make := word(raw_adjust, 2,2)]
+list_new[, .N, Make][order(-Make)]
+# Model
+list_new[, model := str_extract(titles, 
+                                    "e-tron|i3|iX|IONIQ|Kona|I-PACE|Niro|EQA|EQC|ZS EV|Hatch|LEAF|Taycan|Kangoo|Model 3|XC40")]
+
+# Body type
+list_new[, body_type := str_extract(raw_adjust, 
+                                    "Hatch|Sedan|SUV|Van|Wagon")]
+# Battery 
+list_new$raw_adjust[165] %>% 
+  str_extract(., "150[:alpha:]{2}")
+
+list_new[, battery := str_extract(raw_adjust, "AC[:alnum:]{5}|DC[:alnum:]{5}|150[:alpha:]{2}|294[:alpha:]{2}")]
+
+## fill missing battery details manually
+list_new[is.na(battery), .N, .(raw_adjust, battery)]
+### Performance Badge : 335KW combined
+### long range badge: 258KW combined
+list_new[, battery := ifelse(str_detect(raw_adjust, "Long Range"), "258KW", 
+                             ifelse(str_detect(raw_adjust, "Performance Auto"), "335KW", battery))]
+# KW
+list_new[, kw := str_extract(battery, "[0-9]+")]
+
+# range 
+list_new$raw_adjust[165] %>% 
+  str_extract(., "range: [0-9]+")
+
+list_new[, range := str_extract(raw_adjust, "range: [0-9]+")]
+## Check NAs
+list_new[is.na(range),.N,.(raw_adjust, raw_ele,range)]
+### 1: 412KM  2: 412KM  Jaguar missing  9&10: 260km  11:557km  12&13:200km  14&15&16: 270km
+list_new[, range_km := ifelse(!is.na(range), str_extract(range, "[0-9]+"), 
+                              ifelse(str_detect(raw_adjust, "Porsche"), "412",
+                                     ifelse(str_detect(raw_adjust, "BMW"), "260",
+                                            ifelse(str_detect(raw_adjust, "Kona"), "557",
+                                                   ifelse(str_detect(raw_adjust, "Renault"), "200",
+                                                          "270")))))]
+
+# convert to a new df (numeric transformation)
+
+
+df_new_clean <- data.table(title = list_new$titles, 
+                           price = as.numeric(str_extract(list_new$price, "[0-9]+")), 
+                           my = list_new$Model_year, make = list_new$Make,
+                                        model = list_new$model, body_type = list_new$body_type, battery = list_new$battery,
+                                        kw = as.numeric(list_new$kw), 
+                           range_km = as.numeric(list_new$range_km), odo = 0)
+
+```
+
+```{r used and demo}
+list_used_demo <- rbind(list_cars_used, list_cars_demo)
+
+list_used_demo[, raw_ele := str_remove_all(raw_ele,"\n|  |,|\\*")]
+
+# title
+list_used_demo[, titles := str_remove_all(raw_ele, "\\$.*|Enquire.*")]
+
+# price
+## remove special offer information (white noise)
+price <- str_extract(list_used_demo$raw_ele, "\\$.[0-9]+|\\Enquire for price")
+list_used_demo$price <- price
+
+# model year
+list_used_demo[, Model_year := word(raw_ele, 1, 1)]
+
+# Make 
+list_used_demo[, Make := word(raw_ele, 2,2)]
+list_used_demo[, .N, Make][order(-Make)]
+
+# Model
+list_used_demo[, model := str_extract(titles, 
+                                    "e-tron|i3|iX|IONIQ|Kona|I-PACE|Niro|EQA|EQC|ZS EV|Hatch|LEAF|Taycan|Kangoo|Model 3|XC40|Model X|Model S")]
+
+# Body type
+list_used_demo[, body_type := str_extract(raw_ele, 
+                                    "Hatch|Sedan|SUV|Van|Wagon")]
+
+# Battery 
+list_used_demo[, battery := str_extract(raw_ele, "AC[:alnum:]{5}|DC[:alnum:]{5}|150[:alpha:]{2}|294[:alpha:]{2}")]
+
+## fill missing battery details manually
+list_used_demo[is.na(battery), .N, .(raw_ele, battery)]
+### Performance Badge : 335KW combined
+### long range badge: 258KW combined
+list_used_demo[, battery := ifelse(str_detect(raw_ele, "Long Range"), "258KW", 
+                             ifelse(str_detect(raw_ele, "Performance Auto"), "335KW",
+                                    ifelse(str_detect(raw_ele, "2016 Nissan LEAF"), "80",
+                                           battery)))]
+
+# KW
+list_used_demo[, kw := str_extract(battery, "[0-9]+")]
+
+# range 
+list_used_demo[, range := str_extract(raw_ele, "range: [0-9]+")]
+## Check NAs
+list_used_demo[is.na(range),.N,.(raw_ele,range)]
+### 1: 412KM  2: 412KM  Jaguar missing  9&10: 260km  11:557km  12&13:200km  14&15&16: 270km
+list_used_demo[, range_km := ifelse(!is.na(range), str_extract(range, "[0-9]+"), 
+                              ifelse(str_detect(raw_ele, "Porsche"), "412",
+                                     ifelse(str_detect(raw_ele, "BMW"), "260",
+                                            ifelse(str_detect(raw_ele, "Kona"), "557",
+                                                   ifelse(str_detect(raw_ele, "Renault"), "200",
+                                                          "270")))))]
+
+# odometer
+list_used_demo$raw_ele[1] %>% 
+  str_extract(., "[0-9]+.km")
+
+list_used_demo[, odo := str_extract(raw_ele, "[0-9]+.km")]
+
+
+# convert to a new df (numeric transformation)
+
+df_used_demo_clean <- data.table(title = list_used_demo$titles, 
+                           price = as.numeric(str_extract(list_used_demo$price, "[0-9]+")), 
+                           my = list_used_demo$Model_year, make = list_used_demo$Make,
+                                        model = list_used_demo$model, body_type = list_used_demo$body_type, battery = list_used_demo$battery,
+                                        kw = as.numeric(list_used_demo$kw), 
+                           range_km = as.numeric(list_used_demo$range_km), 
+                           odo = as.numeric(str_extract(list_used_demo$odo, "[0-9]+")))
+
+```
+
+```{r merge dfs}
+df_EV_clean <- rbind(df_new_clean, df_used_demo_clean)
+fwrite(df_EV_clean, paste0(filepath,"df_EV_clean.csv"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

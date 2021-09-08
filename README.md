@@ -27,3 +27,7 @@ Completed the new post: Models and Body Types Analysis in Australia car market
 
 # 07/09/2021 7:40pm
 Electric car data collected including 858 electri cars on sale.
+
+# 08/09/2021 4:47pm
+Electric car data clean completed, ready to analysis.  
+The output csv file is : "df_EV_clean.csv"

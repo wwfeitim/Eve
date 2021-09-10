@@ -1,0 +1,194 @@
+---
+title: "EV Analysis"
+author: "Wenwei Fei"
+date: "10/09/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggiraph)
+library(data.table)
+library(scales)
+library(ggpubr)
+```
+
+```{r}
+filepath <- "D:/Projects/EVE/Eve/"
+df_ev <- fread(paste0(filepath, "df_EV_clean.csv"))
+df_ev[,.N,make]
+df_ev <- df_ev[!make == "Mitsubishi"]
+df_ev[, .N, body_type]
+df_ev[, range_km := ifelse(str_detect(make, "Jaguar"), 446, range_km)]
+df_ev[, my := as.factor(my)]
+```
+
+```{r column plots}
+# Makes
+## Price
+tab_make_meanprice <- df_ev[!is.na(price), .(mean_price = round(mean(price), 2)), make][
+  order(mean_price)
+]
+tab_make_medprice <- df_ev[!is.na(price), .(med_price = round(median(price), 2)), make][
+  order(med_price)
+]
+# use reorder to sort
+gg_make_meanprice <- tab_make_meanprice %>% 
+  ggplot(aes(x = reorder(make, mean_price), y = mean_price, fill = make))+
+  geom_col_interactive(aes(tooltip = mean_price, data_id=mean_price))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  scale_y_continuous(labels = comma, breaks = seq(0,300000,25000))+
+  labs(x ="Makes", y = "Mean Price", fill = "Makes", title = "Mean Price by Makes")+
+  geom_line(aes(x = make, y = 50000, group = 1))+
+  geom_line(aes(x = make, y = 100000, group = 1))
+
+gg_make_medprice <- tab_make_medprice %>% 
+  ggplot(aes(x = reorder(make, med_price), y = med_price, fill = make))+
+  geom_col_interactive(aes(tooltip = med_price, data_id=med_price))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  scale_y_continuous(labels = comma, breaks = seq(0,300000,25000))+
+  labs(x ="Makes", y = "Median Price", fill = "Makes", title = "Median Price by Makes")+
+  geom_line(aes(x = make, y = 50000, group = 1))+
+  geom_line(aes(x = make, y = 100000, group = 1))
+```
+
+```{r}
+ggiraph(ggobj = gg_make_meanprice)
+```
+
+```{r}
+ggiraph(ggobj = gg_make_medprice)
+```
+
+The median and mean price plots are similar. Renault, MG and Nissan are perfect for a budget below 50,000 AUD. Between 50,000 and 100,000 AUD, we can find some excellent choices with Hyundai, MINI, Kia, BMW, Volvo and Tesla. Beware that Renault only provides Vans in the electric car market in Aus. 
+
+```{r}
+gg_box_make_price <- df_ev %>% 
+  ggplot(aes(x = reorder(make, price), y = price, fill = make))+
+  geom_boxplot()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  scale_y_continuous(labels = comma, breaks = seq(0,400000,25000))+
+  geom_line(aes(x = make, y = 50000, group = 1))+
+  geom_line(aes(x = make, y = 100000, group = 1))+
+  geom_line(aes(x = make, y = 150000, group = 1))+
+  labs(x ="Makes", y = "Price", fill = "Makes", title = "Price by Makes")
+```
+
+```{r}
+gg_box_make_price
+```
+
+Now let us go a bit further to details. Selections for a budget under 50,000 is limited to MG and half of Nissan's offers. However, between 50,000 and 100,000, buyers have a lot more choices including all pure electric vehicles of MINI, Kia, Volvo, Hyundai, Nissan, and approx. 60% EVs of Tesla and BMW. 
+
+On the other hand, buyers should also consider the EV policies of states in Aus. For example in VIC, the EV policy is: 
+
+"This policy includes an incentive of up to `$3000` to buy an electric vehicle or hydrogen-electric vehicle. The incentive scheme will cover 4000 cars this year and eventually 20,000 EV sales in Victoria over the next three years. This number is unlikely to be surpassed anytime soon, even if the Victorian Government delivers on its policy to up to $10 million worth of EVs." 
+
+The EV market is still minor in Australia while the total number of on-sale EVs on carsales.com is less than 1000. It means, after rough prediction, that every EV buyer will be covered by the policies. 
+
+
+```{r}
+df_ev[, .N, .(make, kw)]
+unique(df_ev$kw)
+gg_point_kw <- df_ev[!is.na(kw)] %>% 
+  ggplot(aes(x=make, y=kw, color = make))+
+  geom_point()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  geom_line(aes(x=make, y=100, group =1))+
+  geom_line(aes(x=make, y=200, group =1))+
+  geom_line(aes(x=make, y=300, group =1))+
+  labs(x="Makes",y="Battery KW", color = "Makes", title = "Battery Power (KW) by Makes")
+  
+gg_point_KW_KM <- df_ev[!is.na(kw) & !is.na(range_km)] %>% 
+  ggplot(aes(x=range_km, y=kw, color = make))+
+  geom_point()+
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5))+
+  geom_line(aes(x=range_km, y=100, group =1))+
+  geom_line(aes(x=range_km, y=200, group =1))+
+  geom_line(aes(x=range_km, y=300, group =1))+
+  labs(x="Travel Range (KM)",y="Battery (KW)", color = "Makes", title = "Battery Power(KW) & Travel Range by Makes")
+## add
+model1 <- df_ev %>% lm(range_km ~ kw, data = .)
+summary(model1)
+
+### 
+gg_point_range_price <- df_ev[!is.na(price) & !is.na(range_km)] %>% 
+  ggplot(aes(x=range_km, y=price, color = make))+
+  geom_point_interactive(aes(tooltip = make, data_id=make))+
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5))+
+  geom_line(aes(y=50000, x=range_km, group =1))+
+  geom_line(aes(y=100000, x=range_km, group =1))+
+  geom_line(aes(y=150000, x=range_km, group =1))+
+  geom_line(aes(x=400, y =price))+
+  labs(x="Travel Range (KM)",y="Price (AUD)", color = "Makes", title = "Battery (KW) & Price by Makes")+
+  scale_y_continuous(labels = comma, breaks = seq(0, 400000, 50000))
+##
+model2 <- df_ev %>% lm(price ~ make + range_km + my + odo, data = .)
+summary(model2)
+```
+
+```{r make_kw, fig.cap='Battery Power (KW) by Makes'}
+gg_point_kw
+```
+
+The battery is the core of an EV just like an engine for fuel combustion cars. 
+In the figure \@ref(fig:make_kw), The power of the battery generally stays between 100KW and 300KW. 
+
+
+```{r km_kw, fig.cap='Battery Power(KW) & Travel Range by Makes'}
+gg_point_KW_KM
+```
+
+In the figure \@ref(fig:km_kw), the relationship between power and range is quite obvious that the higher battery power the longer travel ranges. A linear regression model demonstrates that **every 1 KW of battery power is estimated to increase travel by 0.6 km with an intercept of 266.5 km**. 
+
+$$\widehat{range (km)} = 262.26380 + 0.63523*kw$$
+
+```{r price_range, fig.cap='Battery Power (KW) by Makes'}
+ggiraph(ggobj = gg_point_range_price)
+```
+
+In the figure \@ref(fig:price_range), we can see a clear linear relationship between price and range. Applying make, range, model years and odometers into the linear regression model, we have the summary below: 
+
+```{r model2}
+summary(model2)
+```
+
+Most estimations are significant except odometers and model years. It means the odometer and model years are unlikely to have a significant impact on price. This is the biggest difference to fuel combustion cars. 
+
+The linear regression model, however, demonstrates that **every 1 km increment of the range is estimated to increase 100 AUD on price**. 
+
+## body types
+
+```{r}
+df_ev[!is.na(price)& !body_type == "", .(mean_price = round(mean(price),2)), .(make, body_type)]
+df_ev[body_type == ""] # check empty body type
+
+gg_col_price_body_make <- df_ev[!is.na(price)& !body_type == "", .(mean_price = round(mean(price),2)), .(make, body_type)] %>% 
+  ggplot(aes(x=make, y=mean_price, fill = body_type))+
+  geom_col_interactive(aes(tooltip = mean_price, data_id = mean_price))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  scale_y_continuous(labels = comma, breaks = seq(0, 600000, 100000))+
+  labs(x="Makes",y="Stacked Mean Price (AUD)", fill = "Body Types", title = "Stacked Mean Prices by Body Types and Makes")
+  
+df_ev[make == "Renault"]
+```
+
+```{r pricebodymake, fig.cap='Stacked Mean Prices by Body Types and Makes'}
+ggiraph(ggobj = gg_col_price_body_make)
+```
+
+In the figure \@ref(fig:pricebodymake),we can find that most of the makes focus on SUVs and Hatch only. Generally, these two body types target family and individuals segments. On the contrary, in the Australian EV market, commercial EVs (larger size vehicles) still have a long ways to go. 
+
+
+
+
+
+
+
+

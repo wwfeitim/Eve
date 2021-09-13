@@ -31,3 +31,8 @@ Electric car data collected including 858 electri cars on sale.
 # 08/09/2021 4:47pm
 Electric car data clean completed, ready to analysis.  
 The output csv file is : "df_EV_clean.csv"
+
+# 10/09/2021 6:00P,
+The overview of electric car analysis is completed.  
+I will have to spend few days to be familiar with Shiny Package. I want to embed a calculator app into the blog to measure how much can be saved in 5/10/15 years if people switch from fuel combustion cars to pure electric cars, which is also a answer I want to find.  
+In order to make the measurement accurate, I might take longer time to consider what variables is necessary. I plan to complete this calculator before October.

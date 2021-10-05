@@ -36,12 +36,29 @@ redr$open()
 # redr$close()
 ```
 
+```{r}
+source("D:/Projects/Scrape functions/driver open.R")
+open_driver("yes")
+source("D:/Projects/Scrape functions/driver kill.R")
+driver_kill("yes")
+```
+
 ```{r port kill}
 # to cleanup the port, by kill the java instance(s) inside Rstudio
 # refer: https://github.com/ropensci/RSelenium/issues/228
 system("taskkill /im java.exe /f", intern=FALSE, ignore.stdout=FALSE)
 # check if ports still open
 pingr::ping_port("localhost", 4567)
+```
+
+```{r}
+kill_port <- function(action){
+  if(action = "TRUE"){
+    system("taskkill /im java.exe /f", intern=FALSE, ignore.stdout=FALSE)
+    pingr::ping_port("localhost", 4567)
+  }
+  if(action = "FALSE"){print("No action take")}
+}
 ```
 
 ```{r test}

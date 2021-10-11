@@ -1,0 +1,128 @@
+---
+title: "prediction of value long term"
+author: "Wenwei Fei"
+date: "11/10/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(data.table)
+
+```
+
+```{r}
+filepath <- "D:/Projects/EVE/Eve/"
+df_gas <- fread(paste0(filepath,"df_all_31_08.csv"))
+summary(is.na(df_gas)) # No NA
+summary(df_gas)
+df_gas <- data.table(df_gas)
+df_gas[,.N,price_adj][order(price_adj)]
+df_gas[, year := as.character(year)]
+dt_gas <- df_gas[odo_ad < 300000] # odometer less than 300,000 km
+```
+
+```{r}
+df_ev <- fread(paste0(filepath,"df_EV_clean.csv"))
+```
+
+```{r gasoline}
+# reg model
+lm_gas <- dt_gas %>% 
+  lm(log(price_adj) ~ odo_ad, data = .)
+summary(lm_gas)
+plot(lm_gas,1)
+
+lm_gas_year <- dt_gas %>% 
+  lm(log(price_adj) ~ year, data = .)
+summary(lm_gas_year)
+cor(dt_gas$year, dt_gas$odo_ad,method = "pearson") # high negative correlation odo & my
+res_gas <- resid(lm_gas)
+plot(lm_gas,1)
+plot(lm_gas_year,1)
+# consider endogeneity between year and odo
+ht_model1 <- lm(odo_ad ~ year, data = dt_gas)
+ht_res <- residuals(ht_model1)
+ht_model2 <- lm(log(price_adj)~odo_ad + ht_res + body_adj + trans_ad + make, data = dt_gas)
+summary(ht_model2)
+plot(ht_model2,1)
+library(AER)
+iv_gas <- ivreg(log(price_adj) ~ odo_ad + body_adj + make | year + body_adj + make, data = dt_gas)
+lm_gas <- lm(log(price_adj) ~ odo_ad + year + body_adj + make, data = dt_gas)
+summary(iv_gas) 
+summary(lm_gas)
+# every 10,000 km odo increased will reduce estimated 6.633% in price 
+
+```
+
+```{r EV clean NA}
+summary(is.na(df_ev))
+summary(df_ev)
+dt_ev <- data.table(df_ev)
+dt_ev[, my := as.character(my)]
+dt_ev <- dt_ev[!is.na(kw)]
+dt_ev <- dt_ev[!is.na(price)]
+summary(is.na(dt_ev))
+dt_ev[, .(avg_price = mean(price)), .(my,make)][order(my)]
+dt_ev[, .(avg_odo = mean(odo)), .(my)][order(my)]
+dt_ev_NTB <- dt_ev[make %in% c("Nissan","BMW","Tesla")]
+```
+
+```{r EV model}
+cor(dt_ev$kw, dt_ev$range_km, method = "pearson")
+
+lm_ev <- dt_ev %>% lm(log(price) ~ odo, data = .)
+summary(lm_ev)
+plot(lm_ev,1)
+
+ht_ev1 <- dt_ev %>% lm(log(price) ~ odo + my + kw + range_km + body_type + make, data = .)
+summary(ht_ev1)
+
+ht_ev2 <- dt_ev %>% lm(kw ~ range_km + body_type + make, data = .)
+summary(ht_ev2)
+ht_ev2_odo <- dt_ev %>% lm(odo ~ my + body_type + make, data = .)
+summary(ht_ev2_odo)
+ht_ev2_res <- residuals(ht_ev2)
+ht_ev2_odo_res <- residuals(ht_ev2_odo)
+ht_ev3 <- dt_ev %>% lm(log(price) ~ odo + kw + body_type + make + ht_ev2_res + ht_ev2_odo_res, data = .)
+summary(ht_ev3) # endogeneity has evidence that ht_ev2_res is 10% significant
+plot(ht_ev3,1)
+
+iv_ev1 <- ivreg(log(price) ~ odo + my + kw + body_type + make | 
+                             odo + my + range_km + body_type + make, data = dt_ev)
+summary(iv_ev1)
+# every 10,000 km odo increased will reduce 16.79% estimated in price 
+```
+
+```{r three makes test}
+iv_ev2 <- ivreg(log(price) ~ odo + my + kw + body_type + make | 
+                             odo + my + range_km + body_type + make, data = dt_ev_NTB)
+summary(iv_ev2)
+```
+
+```{r}
+# gasoline
+summary(ht_model2)
+plot(ht_model2,1)
+# EV
+summary(ht_ev3)
+plot(ht_ev3,1)
+```
+
+
+
+
+
+
+
+
+
+
+
+

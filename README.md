@@ -36,3 +36,9 @@ The output csv file is : "df_EV_clean.csv"
 The overview of electric car analysis is completed.  
 I will have to spend few days to be familiar with Shiny Package. I want to embed a calculator app into the blog to measure how much can be saved in 5/10/15 years if people switch from fuel combustion cars to pure electric cars, which is also a answer I want to find.  
 In order to make the measurement accurate, I might take longer time to consider what variables is necessary. I plan to complete this calculator before October.
+
+# 11/10/2021 2:30pm
+After tests of linear & IV regression models for regressors, I find the depreciation rates for gasoline and electric cars. The rates explains the relationship between price/value and odometers. The tasks left are:
+- fuel cost prediction. I need to investigate the fuel price trend from 2010 to 2021.
+- electric consumption. I can find it information on carsales and manufactory information. This is extremely important for EV as well as fuel consumption for gasoline cars.
+- electricity cost. This one is likely to be optional for consumers. I will need to find a default value for Shiny app. 

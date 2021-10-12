@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(data.table)
-
+library(AER)
 ```
 
 ```{r}
@@ -57,7 +57,32 @@ iv_gas <- ivreg(log(price_adj) ~ odo_ad + body_adj + make | year + body_adj + ma
 lm_gas <- lm(log(price_adj) ~ odo_ad + year + body_adj + make, data = dt_gas)
 summary(iv_gas) 
 summary(lm_gas)
+plot(lm_gas,1)
+
+summary(lm_gas)$coefficients[2,1] # extract specific coefficients
 # every 10,000 km odo increased will reduce estimated 6.633% in price 
+
+```
+
+```{r odo change per year}
+dt_gas[,.N,year]
+seq_year <- seq(2011,2021,1)
+df_gas_odo_year <- data.frame()
+
+for (i in seq_year) {
+  
+  lm_year <- lm(log(price_adj) ~ odo_ad + body_adj + make, data = dt_gas[year == i])
+  coeffic_odo <- summary(lm_year)$coefficients[2,1]
+  df_single_cof <- data.frame(year = i, odo_coef = coeffic_odo)
+  df_gas_odo_year <<- rbind(df_gas_odo_year,df_single_cof)
+  
+}
+
+# test sample
+lm_gas_2011 <- lm(log(price_adj) ~ odo_ad + body_adj + make, data = dt_gas[year == 2011])
+summary(lm_gas_2011) # result confirmed
+plot(lm_gas_2011,1)
+
 
 ```
 
@@ -100,10 +125,42 @@ summary(iv_ev1)
 # every 10,000 km odo increased will reduce 16.79% estimated in price 
 ```
 
-```{r three makes test}
+```{r EV test 2}
+dt_ev[, .N,my]
+#2020 odo
+dt_ev_2020 <- dt_ev[my == 2020]
+ht_ev_2020_0 <- lm(kw ~ range_km, data = dt_ev_2020)
+ht_ev_2020_res <- residuals(ht_ev_2020_0)
+ht_ev_2020_1 <- lm(log(price) ~ odo + make + body_type + kw + ht_ev_2020_res, data = dt_ev_2020)
+summary(ht_ev_2020_1)
+plot(ht_ev_2020_1,1)
+# 2021 odo
+dt_ev_2021 <- dt_ev[my == 2021]
+ht_ev_2021_0 <- lm(kw ~ range_km, data = dt_ev_2021)
+ht_ev_2021_res <- residuals(ht_ev_2021_0)
+ht_ev_2021_1 <- lm(log(price) ~ odo + make + body_type + kw + ht_ev_2021_res, data = dt_ev_2021)
+summary(ht_ev_2021_1)
+plot(ht_ev_2021_1,1)
+# 2019 odo
+dt_ev_2019 <- dt_ev[my == 2019]
+ht_ev_2019_0 <- lm(kw ~ range_km, data = dt_ev_2019)
+ht_ev_2019_res <- residuals(ht_ev_2019_0)
+ht_ev_2019_1 <- lm(log(price) ~ odo + make + body_type + kw + ht_ev_2019_res, data = dt_ev_2019)
+summary(ht_ev_2019_1)
+plot(ht_ev_2019_1,1)
+
+
 iv_ev2 <- ivreg(log(price) ~ odo + my + kw + body_type + make | 
-                             odo + my + range_km + body_type + make, data = dt_ev_NTB)
+                             odo + my + range_km + body_type + make, data = dt_ev)
 summary(iv_ev2)
+iv_ev2_res <- residuals(iv_ev2)
+iv_ev2_fit <- fitted(iv_ev2)
+df_ev2_fit_res <- data.frame(fit = iv_ev2_fit, res = iv_ev2_res)
+df_ev2_fit_res %>% ggplot(aes(x = fit, y = res))+
+  geom_point()+
+  geom_smooth()
+
+
 ```
 
 ```{r}

@@ -42,3 +42,10 @@ After tests of linear & IV regression models for regressors, I find the deprecia
 - fuel cost prediction. I need to investigate the fuel price trend from 2010 to 2021.
 - electric consumption. I can find it information on carsales and manufactory information. This is extremely important for EV as well as fuel consumption for gasoline cars.
 - electricity cost. This one is likely to be optional for consumers. I will need to find a default value for Shiny app. 
+
+# 12/10/2021 5:45pm
+The Shiny app is completed over 65%. Sidebar, mainpanel and depreciation of car value (table and plot) are completed. 
+The rest of tasks are:
+- Description of output
+- prediction of future cost
+- plot improvement
